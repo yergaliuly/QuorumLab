@@ -1,0 +1,8 @@
+# Consistent line endings for maintained documentation on Windows and Linux
+*.md text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Preserve supplied source documents byte-for-byte
+docs/TECHNICAL_SPECIFICATION.md -text
+docs/sources/PROJECT_CONTEXT.original.txt -text

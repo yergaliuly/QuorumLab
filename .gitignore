@@ -1,0 +1,33 @@
+# Gradle caches and generated Java build output
+.gradle/
+build/
+out/
+*.class
+
+# Local editor settings; shared extension recommendations may be committed
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# Future dashboard dependencies and generated output
+node_modules/
+dist/
+coverage/
+
+# Local node data and disposable runtime output (not test fixtures)
+/data/
+/logs/
+/tmp/
+*.log
+*.hprof
+
+# Local environment variables; keep the documented example trackable
+.env
+.env.*
+!.env.example
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

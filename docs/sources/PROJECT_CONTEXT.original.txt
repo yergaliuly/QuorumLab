@@ -1,0 +1,266 @@
+# QuorumLab — техническое задание и архитектура
+
+Версия ТЗ 1.0
+
+Java Backend / Distributed Systems
+
+Research-grade Portfolio
+
+QuorumLab — собственная распределённая Key-Value база данных на Java с реализацией алгоритма консенсуса Raft, устойчивым хранением данных и системой детерминированного тестирования отказов.
+
+Мы будем разрабатывать не копию PostgreSQL, а самостоятельный инфраструктурный продукт, который демонстрирует знания алгоритмов, конкурентного программирования, сетей, хранения данных и отказоустойчивости.
+
+Главная инженерная цель:
+
+> Создать кластер, в котором несколько серверов согласованно обрабатывают запросы, а затем построить систему, способную воспроизводимо находить ошибки в его работе.
+
+Именно сочетание собственной базы данных + собственной реализации Raft + Chaos Engineering Lab будет главным отличием проекта.
+
+## 1. Какие результаты считаем успехом
+
+Собственное хранилище
+
+Данные сохраняются на диск. Выключение и повторный запуск процесса не уничтожают успешно подтверждённые записи.
+
+Распределённый кластер
+
+Три узла согласуют операции через Raft. Кластер может продолжать работу при отказе одного узла, если оставшиеся два способны обмениваться сообщениями.
+
+Корректность важнее скорости
+
+Подтверждённые операции не теряются, узлы не применяют разные команды на одной позиции журнала, а клиентские операции соответствуют заявленной модели согласованности.
+
+Собственная испытательная лаборатория
+
+Можно выключать лидера, разделять сеть, задерживать пакеты, имитировать сбои диска и повторять конкретный неудачный эксперимент по seed и журналу событий.
+
+Опорой будут оригинальная спецификация [Raft](https://raft.github.io/?utm_source=chatgpt.com) и практические материалы [MIT Distributed Systems](https://pdos.csail.mit.edu/6.5840/labs/lab-raft1.html?utm_source=chatgpt.com). Аналогичное сочетание моделирования и испытания отказов используется в FoundationDB.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://raft.github.io\&sz=32)
+
+raft.github.io+2
+
+
+
+Принципиальное архитектурное решение: все ключевые алгоритмы пишем самостоятельно на Java. Готовые библиотеки используем для HTTP, сериализации, метрик и тестов, но не для реализации самого Raft или хранения состояния базы данных.
+
+## 2. Полное техническое задание
+
+Я подготовил отдельный Markdown-документ, который можно сразу положить в репозиторий GitHub как `docs/TECHNICAL_SPECIFICATION.md`.
+
+QuorumLab — Technical Specification v1.0
+
+490 строк · Markdown · 46 КБ
+
+Открыть и скачать полное ТЗ
+
+В документе уже определены 15 функциональных требований, 10 нефункциональных требований, 10 ключевых инвариантов безопасности, 18 обязательных тестовых сценариев, 10 этапов разработки и первые 12 задач для GitHub Issues.
+
+Ниже объясню самые важные технические решения.
+
+## 3. Архитектура системы
+
+Логическая архитектура QuorumLab
+
+\#chatgpt-mermaid-\_r_b1\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_b1\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_b1\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_b1\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_b1\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_b1\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_b1\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_b1\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_b1\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_b1\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_b1\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_b1\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;}#chatgpt-mermaid-\_r_b1\_ p{margin:0;}#chatgpt-mermaid-\_r_b1\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_b1\_ .label text,#chatgpt-mermaid-\_r_b1\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .node rect,#chatgpt-mermaid-\_r_b1\_ .node circle,#chatgpt-mermaid-\_r_b1\_ .node ellipse,#chatgpt-mermaid-\_r_b1\_ .node polygon,#chatgpt-mermaid-\_r_b1\_ .node path{fill:rgb(19, 33, 54);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .rough-node .label text,#chatgpt-mermaid-\_r_b1\_ .node .label text,#chatgpt-mermaid-\_r_b1\_ .image-shape .label,#chatgpt-mermaid-\_r_b1\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_b1\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .rough-node .label,#chatgpt-mermaid-\_r_b1\_ .node .label,#chatgpt-mermaid-\_r_b1\_ .image-shape .label,#chatgpt-mermaid-\_r_b1\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_b1\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_b1\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_b1\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_b1\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_b1\_ .edgeLabel{background-color:rgb(14, 14, 14);text-align:center;}#chatgpt-mermaid-\_r_b1\_ .edgeLabel p{background-color:rgb(14, 14, 14);}#chatgpt-mermaid-\_r_b1\_ .edgeLabel rect{opacity:0.5;background-color:rgb(14, 14, 14);fill:rgb(14, 14, 14);}#chatgpt-mermaid-\_r_b1\_ .labelBkg{background-color:rgba(14, 14, 14, 0.5);}#chatgpt-mermaid-\_r_b1\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_b1\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_b1\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_b1\_ .icon-shape,#chatgpt-mermaid-\_r_b1\_ .image-shape{background-color:rgb(14, 14, 14);text-align:center;}#chatgpt-mermaid-\_r_b1\_ .icon-shape p,#chatgpt-mermaid-\_r_b1\_ .image-shape p{background-color:rgb(14, 14, 14);padding:2px;}#chatgpt-mermaid-\_r_b1\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_b1\_ .image-shape .label rect{opacity:0.5;background-color:rgb(14, 14, 14);fill:rgb(14, 14, 14);}#chatgpt-mermaid-\_r_b1\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_b1\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_b1\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_b1\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_b1\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_b1\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_b1\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_b1\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_b1\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_b1\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(232, 232, 232);}#chatgpt-mermaid-\_r_b1\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(232, 232, 232);}#chatgpt-mermaid-\_r_b1\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_b1\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_b1\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(19, 19, 19);stroke:rgb(47, 47, 47);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .node rect,#chatgpt-mermaid-\_r_b1\_ .node circle,#chatgpt-mermaid-\_r_b1\_ .node ellipse,#chatgpt-mermaid-\_r_b1\_ .node polygon,#chatgpt-mermaid-\_r_b1\_ .node path{fill:rgb(24, 24, 24);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_b1\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_b1\_ .mermaid-decision .label-container{fill:rgb(19, 19, 19);stroke:rgb(47, 47, 47);stroke-dasharray:2,2;}#chatgpt-mermaid-\_r_b1\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_b1\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_b1\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";}React Dashboard / CLIHTTP API + Client SDKNode RuntimeRaft Core — Pure JavaKV State MachineWAL + Snapshot StorageOther Raft NodesDeterministic Chaos SimulatorVirtual Network / Clock / DiskHistory CheckerRaft RPC
+
+### Что означает каждый компонент
+
+| Компонент        | Ответственность                                     | Почему нужен                             |
+| ---------------- | --------------------------------------------------- | ---------------------------------------- |
+| Raft Core        | Выборы лидера, термы, журнал, репликация            | Согласованность между узлами             |
+| KV State Machine | PUT, GET, DELETE, CAS                               | Собственно операции с данными            |
+| WAL Storage      | Запись на диск и восстановление                     | Защита от потери подтверждённых операций |
+| Node Runtime     | Соединяет алгоритм с сетью и диском                 | Изоляция бизнес-логики от инфраструктуры |
+| Chaos Simulator  | Имитирует сеть, время, отказы                       | Поиск редких ошибок                      |
+| History Checker  | Проверяет корректность последовательностей операций | Независимая проверка гарантий            |
+| Dashboard        | Визуализирует состояние кластера                    | Демонстрация и отладка                   |
+
+Самое важное решение — Raft Core должен быть независим от сети, системных часов, диска и Spring Boot.
+
+Например, алгоритм получает событие `ElectionTimeout` и выдаёт эффекты: сохранить новое состояние, отправить RequestVote другим узлам, установить следующий таймер.
+
+В реальном режиме эти эффекты исполняет Java runtime. В симуляторе — виртуальный scheduler. Алгоритм остаётся тем же.
+
+## 4. Как будет работать запись
+
+Допустим, пользователь записывает `balance = 500`.
+
+1. Клиент отправляет PUT
+
+   Запрос приходит к лидеру кластера.
+2. Лидер добавляет команду в WAL
+
+   Запись должна стать долговечной на диске до того, как лидер сможет учитывать её как надёжно сохранённую.
+3. Followers получают AppendEntries
+
+   Они проверяют журнал и сохраняют новые записи перед успешным подтверждением.
+4. Получено большинство подтверждений
+
+   В трёхузловом кластере требуется 2 из 3, включая лидера, с соблюдением правил Raft для текущего term.
+5. Команда становится committed
+
+   Лидер применяет её к KV State Machine.
+6. Клиент получает успешный ответ
+
+   Только теперь мы возвращаем подтверждение.
+
+Почему это существенно?
+
+Если лидер отправит `200 OK` до надёжной репликации и сразу упадёт, новый лидер может не иметь этой записи. Клиент будет считать операцию успешной, хотя данные исчезли.
+
+Поэтому порядок persist, replicate, commit и apply — это вопрос корректности, а не просто оптимизации. Документация etcd Raft особо выделяет требования к сохранению HardState и log entries перед отправкой зависящих от них сообщений.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub+1
+
+
+
+Для чтения мы сначала используем простую, но корректную схему: `GET` проходит через Raft-журнал. Позднее реализуем ReadIndex, чтобы не записывать каждое чтение в лог. Главное — не разрешать изолированному старому лидеру отвечать устаревшими значениями.
+
+## 5. Технологический стек
+
+| Область              | Выбор                             |
+| -------------------- | --------------------------------- |
+| Основной язык        | Java 21                           |
+| Сборка               | Gradle Kotlin DSL                 |
+| Консенсус            | Собственная реализация Raft       |
+| Network transport    | gRPC + Protocol Buffers           |
+| Storage              | Собственный WAL + snapshots       |
+| HTTP API             | Spring Boot как отдельный adapter |
+| Тестирование         | JUnit 5, AssertJ, jqwik           |
+| Fault injection      | Собственный simulator + Toxiproxy |
+| Интеграционные тесты | Testcontainers, Docker            |
+| Наблюдаемость        | Micrometer, Prometheus, Grafana   |
+| Frontend             | React + TypeScript                |
+| CI/CD                | GitHub Actions                    |
+
+Почему я не добавляю PostgreSQL, Redis и Kafka?
+
+Потому что в этом проекте мы сами разрабатываем механизм хранения, согласования и репликации. Дополнительные инфраструктурные сервисы создадут сложность, не приближая нас к основной цели.
+
+При этом gRPC использовать нормально: ты демонстрируешь собственную реализацию алгоритмов, а не умение повторно реализовать TCP.
+
+## 6. Дорожная карта разработки
+
+M0
+
+Foundation
+
+Gradle-проект, контракты, модель отказов, базовая CI
+
+M1
+
+Storage Engine
+
+WAL, CRC, durable metadata, восстановление
+
+M2
+
+Leader Election
+
+Follower/Candidate/Leader, RequestVote
+
+M3
+
+Log Replication
+
+AppendEntries, commitIndex, конфликтующие журналы
+
+M4
+
+Replicated KV
+
+PUT, GET, DELETE, CAS, идентификаторы запросов
+
+M5
+
+Real Cluster
+
+Три JVM-процесса, RPC, Docker Compose
+
+M6
+
+Snapshots
+
+Сжатие журнала, передача snapshot отстающему узлу
+
+M7
+
+Chaos Simulator
+
+Виртуальное время, диски, сеть, повторение сбоев
+
+M8
+
+Deep Verification
+
+Независимый checker, нагрузочные и failure-тесты
+
+M9
+
+Showcase
+
+React Dashboard, документация, демо и бенчмарки
+
+Я бы не переходил к следующему этапу, пока предыдущий не имеет работающих автоматизированных тестов. Dashboard намеренно последний: красивая визуализация не должна маскировать ошибки в алгоритме.
+
+## 7. Как будем тестировать
+
+Это важнейшая часть всего проекта.
+
+Примеры обязательных сценариев:
+
+| Сценарий                               | Что мы должны доказать                               |
+| -------------------------------------- | ---------------------------------------------------- |
+| Лидер выключился после успешного PUT   | Данные не потерялись                                 |
+| Старый лидер оказался изолированным    | Он не подтверждает новые линейризуемые операции      |
+| Повтор запроса после timeout           | Операция не применяется дважды                       |
+| Разные узлы имеют конфликтующие записи | Неподтверждённый суффикс безопасно исправляется      |
+| Snapshot создаётся во время сбоя       | Восстановление не повреждает согласованное состояние |
+| Случайный тест обнаружил нарушение     | Ошибку можно воспроизвести по сохранённой трассе     |
+
+Для сетевых интеграционных тестов пригодится Toxiproxy, который поддерживает имитацию плохих сетевых условий.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://testcontainers.com\&sz=32)
+
+Testcontainers
+
+
+
+Особое внимание — linearizability. Если завершилась запись `x=10`, а уже после неё началось чтение, оно не должно возвращать более старое значение при отсутствии последующих изменений. Конкурентные операции проверяются с учётом их реальных интервалов выполнения. Для этого подходят независимые history checkers, такие как Jepsen Knossos.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub+1
+
+
+
+Уровни проверки будут различаться: быстрые unit-тесты на каждый commit, property-based проверки на PR, полноценные многопроцессные тесты перед релизом и долгие симуляции отдельно. В документе заложена целевая nightly-проверка 10 000 seeds; это план, а не уже достигнутый результат.
+
+## 8. С чего конкретно начнём
+
+Первый технический шаг — M0: Foundation, а не немедленное написание Raft.
+
+В этом этапе мы создаём репозиторий, Gradle-модули и фиксируем четыре контракта: `RaftEvent`, `Effect`, `Storage` и `Transport`. Затем пишем самый простой виртуальный event scheduler и первый тест перехода состояния узла.
+
+Это поможет избежать ситуации, когда Raft намертво связан с потоками, сокетами и `System.currentTimeMillis()`, а для симуляции его приходится переписывать.
+
+Первый PR должен запускаться командой:
+
+```
+./gradlew clean test
+```
+
+И проходить в GitHub Actions. Он ещё не будет содержать рабочую распределённую базу данных — только проверяемый фундамент, на котором мы постепенно её построим.
+
+## 9. Какой результат будет особенно ценным для портфолио
+
+Я вижу главный демонстрационный сценарий так: запускаются три узла, выполняется запись, затем мы отключаем лидера. Новый лидер выбирается, подтверждённые данные сохраняются. Мы разрываем сеть, показываем отказ от небезопасных операций, восстанавливаем связь и запускаем проверку истории.
+
+После этого открываем тестовый отчёт с журналом событий и показываем, какие именно свойства системы проверены и какие сценарии пока не покрыты.
+
+Такой проект будет интересен не только работодателям в Java Backend, но и командам, занимающимся databases, storage infrastructure, distributed systems и reliability engineering.
+
+Следующий практический шаг: создать репозиторий `quorumlab`, добавить подготовленное ТЗ и реализовать M0 — структуру проекта, интерфейсы ядра и первый детерминированный тест. Это даст нам прочную основу для дальнейшей разработки без преждевременного усложнения системы.
