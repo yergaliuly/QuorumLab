@@ -1,6 +1,17 @@
 # Матрица приёмки QuorumLab
 
-Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта будущих проверок, а не отчёт об их прохождении. **Все требования пока не реализованы, все сценарии не запускались.** После реализации рядом с результатом нужно сохранять test path/команду, build/commit и ссылку на артефакт прогона.
+Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта будущих проверок. **Продуктовые сценарии T-01…T-18 ещё не запускались.** Частичные свидетельства M0 перечислены отдельно; они не закрывают требования к Raft/storage. После реализации рядом с результатом нужно сохранять test path/команду, build/commit и ссылку на артефакт прогона.
+
+## Свидетельства M0 build от 7 ноября 2026
+
+- Gradle Wrapper 9.9.0: официальный JAR проверен по SHA-256; ZIP checksum записан в Wrapper properties. Shell-скрипт имеет Git mode 100755.
+- Windows: `.\gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build` — успешно, сборка охватывает все десять модулей.
+- WSL Ubuntu/Java 21: полный `clean test build` с временным JUnit probe и финальный обычный build без него — успешно; это не проверка storage durability на Linux filesystem.
+- Временный JUnit probe: один тест с Java 21 record pattern/switch, JVM feature 21. Намеренное ожидание 22 дало assertion failure; правильное ожидание 21 — PASS на Windows и Linux. Probe не коммитится, постоянных тестов продукта пока 0.
+- `:quorum-core:dependencies --configuration runtimeClasspath` — `No dependencies`. Это наблюдение текущего classpath; архитектурное правило NFR-04 ещё не реализовано.
+- Workflow Windows/Linux проверен `actionlint 1.7.12`; Actions закреплены SHA. Реальный GitHub CI run (NFR-07/QL-002 gate) ожидает push пользователя.
+
+Подробности и ограничения — в [BUILD](BUILD.md); полный M0 остаётся открытым.
 
 ## Функциональные требования
 
