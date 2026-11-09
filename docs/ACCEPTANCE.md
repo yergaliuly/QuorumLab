@@ -7,11 +7,27 @@
 - Gradle Wrapper 9.9.0: официальный JAR проверен по SHA-256; ZIP checksum записан в Wrapper properties. Shell-скрипт имеет Git mode 100755.
 - Windows: `.\gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build` — успешно, сборка охватывает все десять модулей.
 - WSL Ubuntu/Java 21: полный `clean test build` с временным JUnit probe и финальный обычный build без него — успешно; это не проверка storage durability на Linux filesystem.
-- Временный JUnit probe: один тест с Java 21 record pattern/switch, JVM feature 21. Намеренное ожидание 22 дало assertion failure; правильное ожидание 21 — PASS на Windows и Linux. Probe не коммитится, постоянных тестов продукта пока 0.
+- Временный JUnit probe: один тест с Java 21 record pattern/switch, JVM feature 21. Намеренное ожидание 22 дало assertion failure; правильное ожидание 21 — PASS на Windows и Linux. Probe не коммитится; в сборочном срезе 7 ноября постоянных тестов продукта было 0.
 - `:quorum-core:dependencies --configuration runtimeClasspath` — `No dependencies`. Это наблюдение текущего classpath; архитектурное правило NFR-04 ещё не реализовано.
-- Workflow Windows/Linux проверен `actionlint 1.7.12`; Actions закреплены SHA. Реальный GitHub CI run (NFR-07/QL-002 gate) ожидает push пользователя.
+- Workflow Windows/Linux проверен `actionlint 1.7.12`; Actions закреплены SHA. 9 ноября подтверждён реальный [CI run 42643809327](https://github.com/yergaliuly/QuorumLab/actions/runs/42643809327): Ubuntu/Windows success на merge commit `3a0b5eea479084c783284decd64d2ad0bb8d62c0`, [PR #1](https://github.com/yergaliuly/QuorumLab/pull/1) merged. QL-002 закрыт.
 
 Подробности и ограничения — в [BUILD](BUILD.md); полный M0 остаётся открытым.
+
+## Свидетельства M0 contracts/scheduler от 9 ноября 2026
+
+Проверен исходный код ветки `feat/m0-core-contracts`, основанной на `3a0b5ee`; исходники, тесты и свидетельства входят в один локальный коммит этого среза. Push выполняет пользователь, новый GitHub CI ещё не проверен.
+
+| Проверка | Фактический результат |
+|---|---|
+| RED до реализации | CoreContractsTest: 36 случаев, 32 ожидаемых падения на отсутствии валидации. Scheduler: 8/8 ожидаемых падений на временных заглушках. Заглушки заменены реализацией |
+| Windows, Java 21 | `gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build`: SUCCESS; 36 core + 8 scheduler, failures/errors/skipped = 0 |
+| WSL Ubuntu, Java 21 | `./gradlew --no-daemon --console=plain --warning-mode=all clean test build`: SUCCESS; те же 44 случая, failures/errors/skipped = 0 |
+| Core runtimeClasspath | Нет зависимостей; production-код использует только JDK. Автоматический запрет framework/I/O пока не добавлен |
+| Simulator runtimeClasspath | Только `project :quorum-core`; новых внешних библиотек нет |
+
+Тесты: [CoreContractsTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/CoreContractsTest.java), [DeterministicSchedulerTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/DeterministicSchedulerTest.java). HTML/XML — в `quorum-{core,simulator}/build/reports/tests/test/` и `build/test-results/test/`. Локальные RED/Windows/WSL логи — игнорируемые `tmp/m0-contracts-*.log`, они не входят в репозиторий.
+
+Проверены локальная допустимость DTO, идентичность ID, порядок очереди, FIFO для равного времени, повтор trace, относительные задержки, пустая очередь и отказ при ошибках без изменения состояния. Из этого не следует корректность Raft, persist ordering, реального restart или диска: алгоритма/адаптеров пока нет. FR-12/NFR-05 покрыты только на уровне начального scheduler. S-02, остальные safety-инварианты и T-01…T-18 ещё не запускались. WSL-прогон из `/mnt/c` не является durability-проверкой Linux filesystem.
 
 ## Функциональные требования
 
