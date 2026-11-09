@@ -1,12 +1,12 @@
 # Состояние QuorumLab
 
-Обновлено: 7 ноября 2026 года, Asia/Qyzylorda.
+Обновлено: 9 ноября 2026 года, Asia/Qyzylorda.
 
 ## Цель и текущий объём
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-Подготовка материалов выполнена. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Стартовый `f502b72` опубликован пользователем в [GitHub](https://github.com/yergaliuly/QuorumLab). В `feat/m0-foundation` выполнен следующий разрешённый срез: Gradle Wrapper, десять Java-модулей, Java 21/JUnit и GitHub Actions. Кода алгоритма и тестов продукта пока нет.
+Подготовка материалов и сборочный срез выполнены. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. PR #1 со сборкой принят, его GitHub CI прошёл. В `feat/m0-core-contracts` подготовлен следующий прямо разрешённый срез: начальные контракты ядра/портов, простой детерминированный scheduler и тесты. Алгоритма Raft и I/O-адаптеров ещё нет.
 
 ## Учебный формат
 
@@ -14,7 +14,9 @@
 
 Для каждой новой технологии нужно объяснять её общее назначение и конкретную роль в QuorumLab. Код разбирается через данные, переходы состояния и эффекты. Объяснения даются по мере работы и после каждого этапа. Если возникла ошибка, объяснить симптом, причину, исправление и проверку; если ошибки не было, не выдумывать её.
 
-**Пройденные темы:** обзор M0, java/javac/Git, Java и Kotlin DSL, VS Code, main/origin/PR, `.gitignore`, коммит и push, переносы строк и отличие автора от HTTPS-аккаунта. Текущий разбор — Wrapper/checksum, модули, toolchain/release 21, test classpath, JUnit Platform/Jupiter и CI matrix. Практическая логика Raft, storage и её тестирование ещё не разбирались.
+**Пройденные темы:** обзор M0, java/javac/Git, Java и Kotlin DSL, VS Code, main/origin/PR, `.gitignore`, коммит и push, переносы строк и отличие автора от HTTPS-аккаунта; Wrapper/checksum, модули, toolchain/release 21, test classpath, JUnit Platform/Jupiter и CI matrix. Новый разбор — interface/record/sealed, Optional, валидация DTO, событие/эффект, порт адаптера, term/vote/commit metadata, ID операции и incarnation, виртуальное время, PriorityQueue/Comparator/FIFO, generic payload, Gradle api-зависимость, RED → GREEN. Пример persist-before-response дан как контракт будущего алгоритма, не реализованное голосование. Материал — [CORE_AND_SCHEDULER](CORE_AND_SCHEDULER.md).
+
+**Организация Git:** одна связная задача — одна активная рабочая ветка и PR; связанные код, тесты, документация и исправления остаются вместе. Не создавать ветки по файлам; крупный milestone можно разделить на несколько законченных срезов.
 
 ## Что закреплено
 
@@ -30,19 +32,21 @@
 | Область | Состояние |
 |---|---|
 | Подготовка документации | Выполнена |
-| M0 Foundation | Сборка десяти модулей готова и проверена Windows/WSL; контракты, ADR, scheduler, архитектурные правила и реальный GitHub CI ещё предстоят |
+| M0 Foundation | Сборка/CI готовы; начальные контракты, ADR-002 и scheduler проверены Windows/WSL. ADR-001 и автоматические архитектурные правила ещё предстоят; CI нового среза ожидает push |
 | M1–M9 | Не начаты |
 | QL-001 | Частично: исходные scope/API/failure model сохранены; спорные контракты и ADR ещё предстоят |
-| QL-002 | Локальная сборка выполнена, workflow подготовлен и проверен actionlint; GitHub gate ожидает push |
-| QL-003…QL-012 | Не начаты |
-| Локальный Git | Рабочая ветка `feat/m0-foundation` от `f502b72`; main отслеживает origin/main; origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | В main подтверждён `f502b728fb5d35b848fd944a53f8aeb57b7f2f22`, автор связан с yergaliuly; отправку выполнил пользователь |
+| QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
+| QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
+| QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
+| QL-005…QL-012 | Не начаты |
+| Локальный Git | Рабочая ветка `feat/m0-core-contracts` от `3a0b5ee`; main синхронизирован с origin/main; старая локальная feat/m0-foundation удалена после проверки merge; origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #1 принят пользователем; merge `3a0b5eea479084c783284decd64d2ad0bb8d62c0`. Изменения текущего среза не отправлялись |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
 | Gradle/Docker/WSL окружение | Gradle 9.9.0 запускается Wrapper без глобальной установки; WSL Ubuntu и JDK/javac 21.0.12.1 проверены. Docker в PATH не найден; storage filesystem ещё не проверен |
-| Код, сборка и тесты продукта | Gradle Kotlin DSL и каркас готовы; `.java` продукта и постоянных тестов пока 0. JUnit отдельно проверен временным probe, не входящим в обычную suite |
+| Код, сборка и тесты продукта | Два модуля с Java-исходниками и постоянными тестами; 44 случая прошли Windows/WSL. Остальные восемь модулей — каркас. Simulator зависит от core; core runtimeClasspath пуст |
 
 ## Текущий учебный шаг
 
@@ -56,14 +60,26 @@
 
 Проверки: Windows `clean test build` — успешно, все десять module build tasks выполнены. Временный init script добавлял JUnit probe с Java 21 record pattern/switch и проверкой JVM: намеренное ожидание 22 вызвало assertion failure, после исправления на 21 тест прошёл Windows и WSL Linux. Probe и его логи находятся в игнорируемом `tmp/build-setup/`; в обычном build probe отсутствует. Полный Linux build прошёл и с probe, и без него. Workflow проверен `actionlint 1.7.12`; Actions закреплены SHA, права read-only, матрица Ubuntu/Windows, лимит 20 минут. Staged review: 29 изменённых файлов, 21 локальная ссылка корректна, Wrapper JAR совпал с официальным SHA-256, Git mode gradlew — 100755, временных файлов в индексе нет.
 
-Это проверка wiring инструментов, не Raft: постоянных продуктовых тестов 0, `NO-SOURCE` ожидаем. GitHub Actions реально ещё не запускался — пользователь должен отправить ветку. WSL build из `/mnt/c` не закрывает Linux durability gate для M1. Финальный review выполняется самим автором по предпочтению пользователя об одном агенте; дополнительный агент для этого конфигурационного среза не нужен.
+Это была проверка wiring инструментов, не Raft: в сборочном срезе постоянных тестов было 0. Позже пользователь отправил ветку и принял [PR #1](https://github.com/yergaliuly/QuorumLab/pull/1); 9 ноября подтверждён [CI 42643809327](https://github.com/yergaliuly/QuorumLab/actions/runs/42643809327), оба jobs успешны. Выполнены fetch, fast-forward main и удаление уже merged локальной ветки. Удалённая старая ветка не удалялась. WSL build из `/mnt/c` не закрывает Linux durability gate для M1.
+
+### Контракты и scheduler, 9 ноября
+
+По прямому запросу создана одна ветка `feat/m0-core-contracts`. План — [2026-11-09-m0-core-contracts](superpowers/plans/2026-11-09-m0-core-contracts.md); решения — [ADR-002](adr/0002-core-events-and-virtual-time.md). Новых библиотек нет: Java 21, существующие Gradle/JUnit. Работа выполнена одним агентом.
+
+Core теперь содержит `RaftCore.step`, sealed RaftEvent/Effect/RaftRpc, immutable NodeId/OperationId/HardState и TimerKind. Порты — Storage, Transport, MonotonicClock, RandomSource. Поддержан только начальный словарь голосования, сохранения метаданных и таймеров. Persist ID различает incarnation/sequence; runtime должен проверять ожидаемую операцию и текущее состояние перед зависимым ответом. Сами storage/runtime и реализация RaftCore отсутствуют.
+
+Scheduler использует JDK PriorityQueue: сначала deadline в наносекундах, затем монотонный insertionOrder. Добавление не двигает время; извлечение одного события двигает его до deadline. Время начинается с 0. Равновременные события идут FIFO; отрицательное/прошлое время, null и overflow отвергаются до изменения состояния. Нет sleep, потока, callbacks, сети, диска или полной replay/fault-инфраструктуры.
+
+Проверки: сначала RED — 32 из 36 core-случаев обнаружили отсутствующую валидацию, все 8 scheduler-тестов обнаружили временные заглушки. После реализации Windows и WSL `clean test build` прошли: 36 core + 8 scheduler, failures/errors/skipped = 0. Проверены runtimeClasspath (core без зависимостей, simulator только core) и фактические XML-отчёты. Это 44 тестовых случая в двух классах, включая параметризованные проверки. Ошибок готового алгоритма не обнаружено: его пока нет; RED был запланированной проверкой тестов до реализации.
+
+Непроверенные границы: реальные выборы, persist-before-response, исполнение защиты от stale completion, restart, сеть/диск, полные T-01…T-18, seeded RNG и автоматическое архитектурное правило. Одинаковые входы дают одинаковую очередь, но это ещё не полная воспроизводимость распределённой системы. CI нового кода ждёт пользовательского push.
 
 ## Следующие шаги M0
 
-1. Пользователь отправляет `feat/m0-foundation`; затем проверить фактический результат обоих GitHub Actions jobs и только после этого закрыть соответствующую часть QL-002.
-2. Разобрать O-02/O-03 из [обзора](PROJECT_BRIEF.md): события, эффекты, зависимые persist/send/apply, Storage/Transport и scheduler; повторно не обсуждать уже выбранные Java/Gradle/редактор.
-3. Зафиксировать scope/failure model и решения по контрактам в ADR. Linux filesystem для будущих storage-проверок (O-01/O-04) остаётся открытым до M1.
-4. Реализовать QL-003/QL-004 с содержательными тестами и автоматическим правилом границ core. Не объявлять весь M0 завершённым до выполнения полного gate.
+1. Пользователь отправляет `feat/m0-core-contracts`; проверить новый CI, провести один PR для контрактов/scheduler/тестов вместе. QL-002 уже закрыт на предыдущем CI, его не открывать заново.
+2. Завершить оставшийся фундамент M0: ADR-001 scope/consistency/failure model и автоматическое правило границ core. Не объявлять весь M0 завершённым до полного gate.
+3. Подготовить M1: Linux filesystem для storage-проверок (O-01/O-04), WAL format/recovery и расширение Storage до log batches. Сначала уточнить контракт, затем реализовать.
+4. Алгоритм выборов и проверки исполнения persist ordering/устаревших completion — M2. Не представлять текущие DTO-тесты как доказательство этих свойств.
 
 ## Договорённости по объёму
 
@@ -87,3 +103,5 @@
 | 2026-11-07 | Подготовлен стартовый коммит документации, `.gitignore` и `.gitattributes`; локальный автор исправлен, HTTPS-аккаунт yergaliuly и право push проверены | Пользователь выполняет `git push -u origin main`; затем продолжаем M0 |
 | 2026-11-07 | Push `f502b72` подтверждён через GitHub API; закреплён запрет префикса codex; создана ветка feat/m0-foundation; проверена Java 21 | Уточнить дизайн первого среза M0, затем создать воспроизводимую Gradle-сборку |
 | 2026-11-07 | Настроены Wrapper, десять Java-модулей, Java 21/JUnit и CI; Windows/WSL сборки и временный JUnit probe прошли; actionlint прошёл | Пользовательский push ветки и фактический CI; затем контракты ядра и scheduler |
+| 2026-11-09 | Пользователь принял PR #1; подтверждены merge 3a0b5ee и успешный CI Ubuntu/Windows; локальный main обновлён. Согласовано объединять связные изменения в одной ветке/PR | Контракты ядра, простой scheduler и тесты одной задачей |
+| 2026-11-09 | В feat/m0-core-contracts реализованы начальные DTO/порты и scheduler; 44 случая проходят Windows/WSL; ADR-002 и учебное объяснение записаны | Пользовательский push и CI; затем ADR-001 и архитектурные правила M0 |
