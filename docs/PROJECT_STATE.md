@@ -6,7 +6,7 @@
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-Подготовка материалов и сборочный срез выполнены. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. PR #1 со сборкой принят, его GitHub CI прошёл. В `feat/m0-core-contracts` подготовлен следующий прямо разрешённый срез: начальные контракты ядра/портов, простой детерминированный scheduler и тесты. Алгоритма Raft и I/O-адаптеров ещё нет.
+M0 локально готов: сборка, начальные контракты/scheduler, ADR-001/002, архитектурные проверки и Linux/ext4-стенд. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. PR #1/#2 и их CI уже подтверждены. По прямому запросу реализован финальный срез в одной ветке `chore/m0-architecture-guardrails`; его новый CI после push остаётся последним M0 gate. Алгоритма Raft и I/O-адаптеров ещё нет.
 
 ## Учебный формат
 
@@ -17,6 +17,8 @@
 **Пройденные темы:** обзор M0, java/javac/Git, Java и Kotlin DSL, VS Code, main/origin/PR, `.gitignore`, коммит и push, переносы строк и отличие автора от HTTPS-аккаунта; Wrapper/checksum, модули, toolchain/release 21, test classpath, JUnit Platform/Jupiter и CI matrix. Новый разбор — interface/record/sealed, Optional, валидация DTO, событие/эффект, порт адаптера, term/vote/commit metadata, ID операции и incarnation, виртуальное время, PriorityQueue/Comparator/FIFO, generic payload, Gradle api-зависимость, RED → GREEN. Пример persist-before-response дан как контракт будущего алгоритма, не реализованное голосование. Материал — [CORE_AND_SCHEDULER](CORE_AND_SCHEDULER.md).
 
 **Организация Git:** одна связная задача — одна активная рабочая ветка и PR; связанные код, тесты, документация и исправления остаются вместе. Не создавать ветки по файлам; крупный milestone можно разделить на несколько законченных срезов.
+
+**Дополнительно пройдено в финальном срезе:** ADR и различие целевых гарантий/свидетельств, compile/runtime/test classpath, bytecode-правила ArchUnit, method call vs method reference, отрицательные fixtures и реальные probes, WSL2/ext4 vs `/mnt/c`, Bash/rsync/mktemp, source snapshot/manifest, влияние Gradle build cache на проверку окружения. Учебный материал — [M0_GUARDRAILS](M0_GUARDRAILS.md).
 
 ## Что закреплено
 
@@ -32,21 +34,21 @@
 | Область | Состояние |
 |---|---|
 | Подготовка документации | Выполнена |
-| M0 Foundation | Сборка/CI готовы; начальные контракты, ADR-002 и scheduler проверены Windows/WSL. ADR-001 и автоматические архитектурные правила ещё предстоят; CI нового среза ожидает push |
+| M0 Foundation | Все локальные пункты выполнены, 60 случаев прошли Windows и свежий WSL/ext4-прогон. Остаётся фактический GitHub CI финального среза после пользовательского push |
 | M1–M9 | Не начаты |
-| QL-001 | Частично: исходные scope/API/failure model сохранены; спорные контракты и ADR ещё предстоят |
+| QL-001 | Выполнено в объёме M0: ADR-001 фиксирует scope/API baseline/failure model, отложенные вопросы привязаны к M1/M4+ |
 | QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
 | QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
 | QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
 | QL-005…QL-012 | Не начаты |
-| Локальный Git | Рабочая ветка `feat/m0-core-contracts` от `3a0b5ee`; main синхронизирован с origin/main; старая локальная feat/m0-foundation удалена после проверки merge; origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | PR #1 принят пользователем; merge `3a0b5eea479084c783284decd64d2ad0bb8d62c0`. Изменения текущего среза не отправлялись |
+| Локальный Git | Одна ветка `chore/m0-architecture-guardrails` от `4a34a3f`; включает записи о CI PR #2 и финальный M0-срез. main соответствует origin/main на 4a34a3f. Origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #2 merged; merge `4a34a3fb196c08518d6f06683ec7ada25fab8f0d`. PR CI 42648502160 и main CI 42649004223 — Ubuntu/Windows success |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
-| Gradle/Docker/WSL окружение | Gradle 9.9.0 запускается Wrapper без глобальной установки; WSL Ubuntu и JDK/javac 21.0.12.1 проверены. Docker в PATH не найден; storage filesystem ещё не проверен |
-| Код, сборка и тесты продукта | Два модуля с Java-исходниками и постоянными тестами; 44 случая прошли Windows/WSL. Остальные восемь модулей — каркас. Simulator зависит от core; core runtimeClasspath пуст |
+| Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu 26.04.1/OpenJDK 21.0.12.1; ext4 `/dev/sdd` проверен. Стенд `/home/amateru/quorumlab-lab`, будущий data-dir `/home/amateru/quorumlab-lab/data`. Docker ранее не найден в PATH; для M0 не нужен. WAL/fsync/recovery ещё не проверялись |
+| Код, сборка и тесты продукта | Два модуля с Java-исходниками; 60 случаев: 36 DTO, 8 scheduler, 16 architecture. Остальные восемь модулей — каркас. Simulator зависит от core; production classpaths ядра защищены Gradle, прямые типы/API — ArchUnit |
 
 ## Текущий учебный шаг
 
@@ -72,20 +74,31 @@ Scheduler использует JDK PriorityQueue: сначала deadline в н�
 
 Проверки: сначала RED — 32 из 36 core-случаев обнаружили отсутствующую валидацию, все 8 scheduler-тестов обнаружили временные заглушки. После реализации Windows и WSL `clean test build` прошли: 36 core + 8 scheduler, failures/errors/skipped = 0. Проверены runtimeClasspath (core без зависимостей, simulator только core) и фактические XML-отчёты. Это 44 тестовых случая в двух классах, включая параметризованные проверки. Ошибок готового алгоритма не обнаружено: его пока нет; RED был запланированной проверкой тестов до реализации.
 
-Непроверенные границы: реальные выборы, persist-before-response, исполнение защиты от stale completion, restart, сеть/диск, полные T-01…T-18, seeded RNG и автоматическое архитектурное правило. Одинаковые входы дают одинаковую очередь, но это ещё не полная воспроизводимость распределённой системы. CI нового кода ждёт пользовательского push.
+Непроверенные границы: реальные выборы, persist-before-response, исполнение защиты от stale completion, restart, сеть/диск, полные T-01…T-18 и seeded RNG. Одинаковые входы дают одинаковую очередь, но это ещё не полная воспроизводимость распределённой системы. Архитектурное правило добавлено следующим срезом ниже.
 
-## Следующие шаги M0
+После пользовательского push подтверждены [PR #2](https://github.com/yergaliuly/QuorumLab/pull/2), merge `4a34a3f`, [PR CI](https://github.com/yergaliuly/QuorumLab/actions/runs/42648502160) и [main CI](https://github.com/yergaliuly/QuorumLab/actions/runs/42649004223). В обоих runs оба jobs и шаг `Build and test all Java modules` завершились успешно. Merge не изменил дерево исходников относительно проверенного `cea2186`, поэтому повторный локальный build не запускался. После временного отказа GitHub-коннектора окончательный статус main подтверждён публичным GitHub REST API через PowerShell; сбоя сборки не было.
 
-1. Пользователь отправляет `feat/m0-core-contracts`; проверить новый CI, провести один PR для контрактов/scheduler/тестов вместе. QL-002 уже закрыт на предыдущем CI, его не открывать заново.
-2. Завершить оставшийся фундамент M0: ADR-001 scope/consistency/failure model и автоматическое правило границ core. Не объявлять весь M0 завершённым до полного gate.
-3. Подготовить M1: Linux filesystem для storage-проверок (O-01/O-04), WAL format/recovery и расширение Storage до log batches. Сначала уточнить контракт, затем реализовать.
-4. Алгоритм выборов и проверки исполнения persist ordering/устаревших completion — M2. Не представлять текущие DTO-тесты как доказательство этих свойств.
+### Архитектурные правила и WSL, 9 ноября
+
+План — [2026-11-09-m0-guardrails](superpowers/plans/2026-11-09-m0-guardrails.md). ADR-001 сохраняет существующий scope, линейризуемый API baseline и модель отказов; O-04…O-12 остаются явно отложенными по этапам. ArchUnit 1.5.1 добавлен только к тестам core, используется обычный JUnit 5 без нового engine. Gradle verifyCoreClasspath запрещает compile/runtime dependencies, четыре правила импортируют все production classes core и запрещают внешние типы, I/O, wall clock, concurrency и скрытый RNG. Test fixtures не исполняют свои опасные методы, только анализируются.
+
+Проверки RED: 11 запрещённых fixtures сначала не обнаруживались; затем правила обнаружили все. Временный main-класс вне пакета core с `System::nanoTime` сделал обычный root test красным. Отдельные compileOnly/runtimeOnly probes показали отказ даже для неиспользуемой JUnit dependency. Production probe удалён; init script и логи остались только в игнорируемом tmp и не подключаются обычным build.
+
+Windows clean/test/build прошёл, 60 случаев без failures/errors/skips. Скрипт `scripts/test-wsl.sh` создал из текущего checkout отдельный source snapshot на ext4, без `.git`/tmp/старых build outputs, и отдельный будущий data-dir. Попытка выбрать `/mnt/c` отвергнута по фактическому FSTYPE=9p. Первый Linux build переиспользовал часть cache; скрипт изменён на `--no-build-cache`, после чего выполнен свежий успешный прогон всех 60 случаев. Скачанные зависимости по-прежнему кэшируются.
+
+Финальное свидетельство: `/home/amateru/quorumlab-lab/runs/run-XGIWiigS/`, source SHA-256 manifest проверен, XML-отчёты показывают ноль ошибок/пропусков и новый запуск всех четырёх test suites. В environment.txt указан исходный HEAD 4a34a3f и dirty status, поэтому проверенный код определяется manifest, а не приписывается старому коммиту. После этого обновлялась только документация. Это подготовка Linux-стенда, не проверка power loss или WAL durability.
+
+## Следующие шаги
+
+1. Пользователь отправляет `chore/m0-architecture-guardrails`; один PR содержит ADR, тесты, WSL-скрипт и документацию. Проверить новый CI обоих jobs, затем фактический merge/main и закрыть M0 по gate. До этого статус «локально готов, remote gate ожидается».
+2. Перед M1 разобрать O-04: WAL binary format/version/CRC32C, границы atomic HardState, append/truncate/replay и tail policy. Зафиксировать решение, затем реализовать codec и содержательные format/checksum tests.
+3. Storage-проверки запускать на подготовленном Linux/ext4-стенде через scripts/test-wsl.sh. Windows checkout остаётся source of truth; snapshots в WSL не редактировать как вторую рабочую ветку. Алгоритм выборов и проверки исполнения persist ordering/устаревших completion — M2.
 
 ## Договорённости по объёму
 
 Опорный замысел из файлов: одна группа, три узла, линейризуемые KV-операции, WAL и snapshots, клиентская дедупликация, чистое ядро и общий алгоритм для симулятора/реального runtime. Dashboard — после M4–M8. Оптимизация ReadIndex — последующее отдельное решение, стартовый GET идёт через Raft-log.
 
-Срок 12–20 недель в ТЗ — ориентир автора, не согласованный календарный план. Для текущего среза выбраны Gradle 9.9.0/JUnit 5.14.4/Java 21; лицензия, HTTP-adapter и способ Linux storage-проверок ещё не выбраны.
+Срок 12–20 недель в ТЗ — ориентир автора, не согласованный календарный план. Выбраны Gradle 9.9.0/JUnit 5.14.4/Java 21/ArchUnit 1.5.1 и WSL Ubuntu/ext4-стенд. Лицензия, HTTP-adapter и точная методика crash/durability-проверок ещё не выбраны.
 
 ## Проверки подготовки
 
@@ -105,3 +118,5 @@ Scheduler использует JDK PriorityQueue: сначала deadline в н�
 | 2026-11-07 | Настроены Wrapper, десять Java-модулей, Java 21/JUnit и CI; Windows/WSL сборки и временный JUnit probe прошли; actionlint прошёл | Пользовательский push ветки и фактический CI; затем контракты ядра и scheduler |
 | 2026-11-09 | Пользователь принял PR #1; подтверждены merge 3a0b5ee и успешный CI Ubuntu/Windows; локальный main обновлён. Согласовано объединять связные изменения в одной ветке/PR | Контракты ядра, простой scheduler и тесты одной задачей |
 | 2026-11-09 | В feat/m0-core-contracts реализованы начальные DTO/порты и scheduler; 44 случая проходят Windows/WSL; ADR-002 и учебное объяснение записаны | Пользовательский push и CI; затем ADR-001 и архитектурные правила M0 |
+| 2026-11-09 | Пользователь принял PR #2; PR/main CI прошли Ubuntu/Windows на cea2186/4a34a3f. Локальный main обновлён, merged локальная ветка удалена; статус и границы M0 уточнены | Следующий единый срез: ADR-001, архитектурные проверки и выбор Linux-стенда перед M1 |
+| 2026-11-09 | По прямому запросу в chore/m0-architecture-guardrails оформлен ADR-001, добавлены Gradle/ArchUnit guards и скрипт WSL/ext4-стенда; 60 случаев проходят Windows и свежий Linux-прогон | Пользовательский push/PR, новый CI и завершение M0; далее O-04/WAL codec M1 |
