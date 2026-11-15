@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 class WalStorageTest {
     private static final OperationId ID = new OperationId(7, 2);
-    private static final Effect.PersistHardState REQUEST = new Effect.PersistHardState(ID,
+    private static final Effect.PersistBatch REQUEST = new Effect.PersistBatch(ID,
             new HardState(1, Optional.of(new NodeId("a")), 0));
 
     @Test void queuesCompletionWithOriginalIdOnlyAfterDurability() throws Exception {
@@ -38,7 +38,7 @@ class WalStorageTest {
     @Test void rejectsCommitBeyondLogWithoutPersistingTermAlone() throws Exception {
         var disk = new ModelDisk(); var queue = new ArrayDeque<RaftEvent>();
         try (var wal = FileWal.create(disk, FileWalTest.ID)) {
-            new WalStorage(wal, queue).persist(new Effect.PersistHardState(ID, new HardState(1, Optional.empty(), 1)));
+            new WalStorage(wal, queue).persist(new Effect.PersistBatch(ID, new HardState(1, Optional.empty(), 1)));
             assertInstanceOf(RaftEvent.PersistFailed.class, queue.remove());
             assertEquals(HardState.initial(), wal.state().hardState());
         }

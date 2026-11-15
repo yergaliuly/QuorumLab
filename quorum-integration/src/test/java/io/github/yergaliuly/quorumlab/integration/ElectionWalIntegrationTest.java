@@ -89,14 +89,12 @@ class ElectionWalIntegrationTest {
         System.out.println("Election integration filesystem: " + type + "; data: " + temporary);
     }
 
-    private static ElectionCore core(FileWal wal,long incarnation) {
+    private static RaftNode core(FileWal wal,long incarnation) {
         var state=wal.state();
-        LogPosition last=state.entries().isEmpty()? LogPosition.empty()
-                :new LogPosition(state.entries().getLast().index(),state.entries().getLast().term());
-        return new ElectionCore(new ElectionConfig(A,List.of(A,B,C),incarnation,100,200,20),state.hardState(),last,(a,b)->a);
+        return new RaftNode(new RaftConfig(A,List.of(A,B,C),incarnation,100,200,20),state.toRaftState(),(a,b)->a);
     }
-    private static Effect.PersistHardState persist(List<Effect> effects) {
-        var matches=effects.stream().filter(Effect.PersistHardState.class::isInstance).map(Effect.PersistHardState.class::cast).toList();
+    private static Effect.PersistBatch persist(List<Effect> effects) {
+        var matches=effects.stream().filter(Effect.PersistBatch.class::isInstance).map(Effect.PersistBatch.class::cast).toList();
         assertEquals(1,matches.size(),effects.toString()); return matches.getFirst();
     }
     private static void noSends(List<Effect> effects) { assertTrue(effects.stream().noneMatch(Effect.SendRpc.class::isInstance),effects.toString()); }

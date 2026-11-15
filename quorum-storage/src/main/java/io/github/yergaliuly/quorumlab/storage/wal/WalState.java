@@ -2,6 +2,8 @@ package io.github.yergaliuly.quorumlab.storage.wal;
 
 import io.github.yergaliuly.quorumlab.core.HardState;
 import io.github.yergaliuly.quorumlab.core.NodeId;
+import io.github.yergaliuly.quorumlab.core.LogEntry;
+import io.github.yergaliuly.quorumlab.core.RaftState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +22,10 @@ public final class WalState {
     static WalState initial() { return new WalState(HardState.initial(), List.of()); }
     public HardState hardState() { return hardState; }
     public List<WalRecord.AppendEntry> entries() { return entries; }
+    public RaftState toRaftState() {
+        return new RaftState(hardState,entries.stream().map(entry->new LogEntry(entry.index(),entry.term(),
+                LogEntry.Type.valueOf(entry.type().name()),entry.command())).toList());
+    }
 
     WalState apply(List<WalRecord> records) {
         var builder = new Builder(this);

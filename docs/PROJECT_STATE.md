@@ -6,7 +6,7 @@
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-M0/M1 завершены: PR #5 принят, CI PR/main прошли Ubuntu/Windows. По прямому запросу реализован M2/QL-007…QL-009 в одной ветке `feat/m2-leader-election`: election core, seeded виртуальный стенд трёх узлов и интеграция с WAL. Локальный gate M2 пройден; remote gate ожидает пользовательских push/PR/merge и CI. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Репликация лога/полный AppendEntries, KV, реальная сеть, snapshot и ротация WAL ещё не реализованы.
+M0–M2 завершены: PR #6 merged `6e05e41`, CI PR/main Ubuntu/Windows success. По прямому запросу реализован M3/QL-010…QL-012 в одной ветке `feat/m3-log-replication`: AppendEntries, conflict repair, durable commit/apply, NO_OP и safety simulation. Локальный gate M3 пройден; remote gate ожидает пользовательских push/PR/merge и CI. **Ассистент пишет код/тесты, проверяет и объясняет; push выполняет пользователь.** Computer use и префикс codex запрещены, редактор VS Code. KV, реальная сеть, snapshots и ротация WAL ещё не реализованы.
 
 ## Учебный формат
 
@@ -26,6 +26,8 @@ M0/M1 завершены: PR #5 принят, CI PR/main прошли Ubuntu/Win
 
 **Пройдено в M2:** follower/candidate/leader/failed, term vs OperationId/incarnation, большинство 2/3 и Set голосов, lexicographic log freshness, randomized timeout и seeded RNG, heartbeat election-only, current vs durable state, сериализация persist и отмена старого ответа, stale timers/completions, split vote, partition/heal, лидеры разных terms, виртуальный driver и trace, 100 seeded fault trials, реальный restart с WAL. Материал — [ELECTIONS](ELECTIONS.md), [ADR-004](adr/0004-deterministic-leader-election.md).
 
+**Пройдено в M3:** index/term и четыре стадии admission → durable log → durable commit → apply; prev consistency, conflict repair, matchIndex/nextIndex, stop-and-wait и request correlation, current-term commit/NO_OP/Figure 8, atomic PersistBatch, ordered apply/replay, safety oracle и mutation probe. Материал — [REPLICATION](REPLICATION.md), решение — [ADR-005](adr/0005-durable-log-replication.md).
+
 ## Что закреплено
 
 - Сохранены без изменения полная спецификация v1.0 и поясняющий исходный текст.
@@ -42,24 +44,25 @@ M0/M1 завершены: PR #5 принят, CI PR/main прошли Ubuntu/Win
 | Подготовка документации | Выполнена |
 | M0 Foundation | Завершён 15 ноября: локальные проверки и CI финального PR #3/main прошли, ADR/контракты/стенд/guards готовы |
 | M1 Storage | Завершён: локальные gates + PR #5 merged eabf1b3, CI PR/main Ubuntu/Windows success |
-| M2 Election | Реализован и локально проверен: 44 новых cases, Windows 230 выполненных, WSL/ext4 256. CI/merge нового среза ожидают push |
-| M3–M9 | Не начаты |
+| M2 Election | Завершён: PR #6 merged 6e05e41; PR CI 43721366893 и main CI 43721479610 — Ubuntu/Windows success |
+| M3 Replication | Локальный gate выполнен: 31 новый case, Linux 287/287, Windows XML 256 non-skipped + 17 skipped. Ожидает push/CI/merge |
+| M4–M9 | Не начаты |
 | QL-001 | Выполнено в объёме M0: ADR-001 фиксирует scope/API baseline/failure model, отложенные вопросы привязаны к M1/M4+ |
 | QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
 | QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
 | QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
 | QL-005 | Выполнено: PR #4 merged d00dcd7, codec d49e521; CI PR/push/main прошли Ubuntu/Windows |
 | QL-006 | Выполнено: PR #5 merged eabf1b3, CI PR 43718265515 / main 43718416419 success |
-| QL-007…QL-009 | Реализовано: ElectionCore, RequestVote/persist ordering, heartbeat timers, seeded simulator и restart tests; ожидает push/CI/merge |
-| QL-010…QL-012 | Не начаты |
-| Локальный Git | Одна рабочая ветка `feat/m2-leader-election` от `eabf1b3`; main fast-forward до origin/main. Origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | PR #5 merged eabf1b3ec692327e4cbb19f9493ac78f8f108cea; PR CI 43718265515 и main CI 43718416419 completed/success, оба jobs Ubuntu/Windows success. M2 ещё не отправлялся |
+| QL-007…QL-009 | Выполнены, CI/merge M2 подтверждены; классы расширены и переименованы в RaftNode/RaftSimulation в M3 |
+| QL-010…QL-012 | Реализованы и локально проверены: AppendEntries/durable repair, nextIndex/matchIndex, current-term commit, Figure 8 |
+| Локальный Git | Одна ветка `feat/m3-log-replication` от 6e05e41; main fast-forward до origin/main. Origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #6 merged 6e05e41dc820956eb3374b84e1d2a30399a08916; CI PR 43721366893 / main 43721479610 completed/success, Ubuntu/Windows jobs success. M3 не отправлялся |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
 | Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu/OpenJDK 21; ext4 стенд `/home/amateru/quorumlab-lab`. WAL tests создают данные внутри ext4 source snapshot/build/tmp/test-files, будущие node data — отдельный `data/`. Проверены force/recovery/process halt; физический power loss не проверен |
-| Код, сборка и тесты продукта | Production Java в core/storage/simulator; integration содержит Linux tests с test-only dependencies core/storage. Linux 256 случаев, Windows 230 выполненных + 12 skipped Linux methods. Core guards и все проверки проходят; новых внешних библиотек нет |
+| Код, сборка и тесты продукта | Core/storage/simulator production Java; integration test-only. Linux 287 случаев без skips/errors; Windows 273 registered, 17 Linux skipped, 256 non-skipped. Core guards проходят, новых внешних библиотек нет |
 
 ## Текущий учебный шаг
 
@@ -113,9 +116,9 @@ Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/
 
 ## Следующие шаги
 
-1. Пользователь отправляет `feat/m2-leader-election`, создаёт один PR и выполняет merge после CI. Ассистент проверяет CI PR/main и обновляет локальный main; до этого remote gate M2 не закрыт.
-2. После подтверждения M2 — M3/QL-010…QL-012: полноценный AppendEntries вместо election-only heartbeat, log matching/conflict repair, nextIndex/matchIndex, current-term commit и ordered apply. Это следующий запрос; реализации M3 сейчас нет.
-3. При изменениях storage использовать scripts/test-wsl.sh; JUnit temporary files обязаны оставаться в build/tmp/test-files снимка, а не /tmp (tmpfs). Snapshot — свидетельство, не второй редактируемый checkout. Не обобщать process halt и model crash на hardware power loss.
+1. Пользователь отправляет `feat/m3-log-replication`, создаёт один PR и делает merge после CI. Ассистент затем проверяет CI PR/main; remote gate M3 до этого открыт.
+2. После M3 — M4 KV/client. Сначала уточнить O-05…O-08 (missing keys, revisions/CAS, sequence/dedup, unknown outcome), затем реализовать детерминированную state machine и проверки. Новый этап не начинать молча. Propose/ProposalQueued M3 — внутренний вход/admission, не клиентский успех.
+3. Storage checks выполнять через scripts/test-wsl.sh на ext4; test files остаются в module build/tmp/test-files. Не приравнивать model/process crash к hardware power loss.
 
 ## Договорённости по объёму
 
@@ -166,3 +169,19 @@ ElectionCore реализует роли, RequestVote/log freshness, membership,
 26 core и 14 simulator cases прошли RED → GREEN; дополнительных непредвиденных ошибок не обнаружено. Полный Windows build: 230 executed + 12 Linux methods skipped, 0 failures/errors. Fresh WSL run-WVW1bqw8: 256/256, 0 failures/errors/skips, без build cache; storage и integration test data подтверждены как ext4. Включены 100 seeded fault trials, repeatable trace и 4 настоящих WAL integration tests. Core architecture/classpath guards прошли. После прогона менялась только документация.
 
 Локальный gate M2 выполнен; remote CI этого среза ещё не было. Push выполняет пользователь. Следующий этап после его CI/merge — M3 (полноценный AppendEntries, replication/commit/apply), не real network M5. Старое предупреждение Gradle registering перед Gradle 10 остаётся без изменений.
+
+### Закрытие M2 и локальный M3, 15 ноября
+
+Проверены [PR #6](https://github.com/yergaliuly/QuorumLab/pull/6), [PR CI](https://github.com/yergaliuly/QuorumLab/actions/runs/43721366893) и [main CI](https://github.com/yergaliuly/QuorumLab/actions/runs/43721479610): оба jobs Ubuntu/Windows success. Main fast-forward до merge 6e05e41; одна новая ветка feat/m3-log-replication. Push не выполнялся.
+
+Расширены существующие алгоритм/стенд до RaftNode/RaftSimulation; сохранены 26 M2 core и 14 M2 simulation cases. AppendEntries заменил временный heartbeat. Добавлены immutable LogEntry/RaftState, atomic PersistBatch и bridge FileWal, progress/request correlation, NO_OP/current-term commit, durable commit-before-apply, явные admission outcomes и ordered replay. Никакой реальной сети или KV пока нет. [План](superpowers/plans/2026-11-15-m3-log-replication.md) и [дизайн](superpowers/specs/2026-11-15-log-replication-design.md).
+
+Проверки: 4 новых contract + 16 core + 6 simulator + 5 Linux integration = 31 новый JUnit case. Два seeded smoke tests (старый election и новый replication) выполняют по 100 trials внутри отдельных cases. Figure 8 адаптирован к трём voters. При временном отключении current-term guard unit и simulation tests оба упали: expected commit=0, actual=2. Guard восстановлен до финальных сборок.
+
+Реальная ошибка разработки: helper seed в новом integration test не объявил IOException от FileWal.persist; компилятор остановил сборку. Добавлено throws IOException; итоговый integration compile и все 9 Linux integration tests прошли. Других непредвиденных failures алгоритма в этих прогонах не было.
+
+Windows clean test build SUCCESS: XML 273 registered / 256 non-skipped / 17 skipped, failures/errors=0; финальный build использовал 7 FROM-CACHE tasks (ранее проверенные результаты). WSL scripts/test-wsl.sh: свежий ext4 snapshot `/home/amateru/quorumlab-lab/runs/run-AIH1CRxD/`, 287/287 cases, failures/errors/skipped=0, 33 tasks (22 executed, 11 up-to-date), без build cache. XML storage/integration подтверждает ext4 и module build/tmp/test-files. Source HEAD 6e05e41 + dirty M3; точный код определяется source.sha256. После сборок менялась только документация. Manifest/ссылки проверяются перед локальным коммитом.
+
+Финальная сверка: 104 файла Linux manifest целы, 69 исполняемых/config files совпали с Windows checkout, 131 локальная Markdown-ссылка разрешается; исходные TECHNICAL_SPECIFICATION и PROJECT_CONTEXT.original не менялись. Работа выполнена одним агентом, без computer use.
+
+Границы: 3 in-process cores с тремя настоящими WAL проверены, но не 3 отдельных node processes. Consumer пока собирает committed entries, не исполняет KV. Snapshots, client success/dedup/linearizability и hardware power loss остаются будущими gates. Существующее предупреждение Gradle о delegated task syntax для Gradle 10 не связано с M3.

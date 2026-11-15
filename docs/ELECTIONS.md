@@ -1,5 +1,7 @@
 # M2: как узлы выбирают лидера
 
+> Исторический разбор соответствующего этапа. В M3 ElectionCore/ElectionConfig/ElectionSimulation расширены до RaftNode/RaftConfig/RaftSimulation; PersistHardState заменён PersistBatch, временный heartbeat — AppendEntries. Текущее поведение — в [REPLICATION](REPLICATION.md).
+
 Теперь проект умеет выбирать лидера между тремя виртуальными узлами, переизбирать его после сбоя и восстанавливать term/vote. Это реализация election-части Raft; репликация команд, KV и настоящий сетевой runtime ещё впереди. [ADR-004](adr/0004-deterministic-leader-election.md) фиксирует решения, [ACCEPTANCE](ACCEPTANCE.md) — реальные проверки.
 
 ## Три роли и term

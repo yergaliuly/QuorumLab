@@ -1,5 +1,7 @@
 # Как работает файловый WAL
 
+> Исторический разбор соответствующего этапа. В M3 ElectionCore/ElectionConfig/ElectionSimulation расширены до RaftNode/RaftConfig/RaftSimulation; PersistHardState заменён PersistBatch, временный heartbeat — AppendEntries. Текущее поведение — в [REPLICATION](REPLICATION.md).
+
 Этот срез M1 добавил физическое сохранение и восстановление поверх существующего [кодека](WAL_CODEC.md). Алгоритма Raft, KV apply и сети ещё нет. [ADR-003](adr/0003-wal-checkpoint-and-recovery.md) содержит точные решения и ограничения, [матрица приёмки](ACCEPTANCE.md) — результаты проверок.
 
 ## От Java-объекта до подтверждения

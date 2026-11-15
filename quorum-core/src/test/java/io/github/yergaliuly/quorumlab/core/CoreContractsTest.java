@@ -27,8 +27,8 @@ class CoreContractsTest {
     void recordsCarryValueIdentityAndRestartSeparatesCompletions() {
         var state = new HardState(3, Optional.of(A), 7);
         assertEquals(state, new HardState(3, Optional.of(new NodeId("a")), 7));
-        assertEquals(new Effect.PersistHardState(ID, state),
-                new Effect.PersistHardState(new OperationId(1, 1), state));
+        assertEquals(new Effect.PersistBatch(ID, state),
+                new Effect.PersistBatch(new OperationId(1, 1), state));
         assertNotEquals(new RaftEvent.PersistCompleted(ID),
                 new RaftEvent.PersistCompleted(new OperationId(2, 1)));
     }
@@ -90,8 +90,8 @@ class CoreContractsTest {
                 () -> new RaftEvent.PersistCompleted(null),
                 () -> new RaftEvent.PersistFailed(null, "failure"),
                 () -> new RaftEvent.PersistFailed(ID, null),
-                () -> new Effect.PersistHardState(null, HardState.initial()),
-                () -> new Effect.PersistHardState(ID, null),
+                () -> new Effect.PersistBatch(null, HardState.initial()),
+                () -> new Effect.PersistBatch(ID, null),
                 () -> new Effect.SendRpc(null, new RaftRpc.VoteResponse(1, false)),
                 () -> new Effect.SendRpc(A, null),
                 () -> new Effect.ScheduleTimer(null, TimerKind.ELECTION, 1),

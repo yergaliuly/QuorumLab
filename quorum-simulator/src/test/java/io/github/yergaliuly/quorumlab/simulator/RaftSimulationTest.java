@@ -9,12 +9,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class ElectionSimulationTest {
+class RaftSimulationTest {
     private static final NodeId A = new NodeId("a"), B = new NodeId("b"), C = new NodeId("c");
     private static final List<NodeId> NODES = List.of(A,B,C);
-    private static final ElectionSimulation.Timing TIMING = new ElectionSimulation.Timing(100,200,20,5,10,5);
-    private static ElectionSimulation simulation(long seed) { return new ElectionSimulation(NODES, seed, TIMING); }
-    private static void until(ElectionSimulation sim, BooleanSupplier condition) {
+    private static final RaftSimulation.Timing TIMING = new RaftSimulation.Timing(100,200,20,5,10,5);
+    private static RaftSimulation simulation(long seed) { return new RaftSimulation(NODES, seed, TIMING); }
+    private static void until(RaftSimulation sim, BooleanSupplier condition) {
         for (int i=0; i<500 && !condition.getAsBoolean(); i++) assertTrue(sim.step());
         assertTrue(condition.getAsBoolean(), () -> String.join("\n", sim.trace().subList(Math.max(0, sim.trace().size()-15), sim.trace().size())));
     }
@@ -30,7 +30,7 @@ class ElectionSimulationTest {
 
     @Test void splitSelfVotesResolveInLaterTermAfterNetworkHeals() {
         var sim = simulation(3); NODES.forEach(sim::isolate);
-        until(sim, () -> NODES.stream().allMatch(id -> sim.status(id).role() == ElectionCore.Role.CANDIDATE));
+        until(sim, () -> NODES.stream().allMatch(id -> sim.status(id).role() == RaftNode.Role.CANDIDATE));
         assertTrue(sim.leadersByTerm().isEmpty());
         for (NodeId id : NODES) assertEquals(1, sim.status(id).hardState().currentTerm());
         sim.heal(); sim.runSteps(500);
@@ -47,7 +47,7 @@ class ElectionSimulationTest {
         assertEquals(oldTerm, sim.status(old).hardState().currentTerm());
         sim.heal(); sim.runSteps(500);
         assertEquals(List.of(newer), sim.leaders());
-        assertEquals(ElectionCore.Role.FOLLOWER, sim.status(old).role());
+        assertEquals(RaftNode.Role.FOLLOWER, sim.status(old).role());
     }
 
     @Test void leaderCrashAllowsRemainingMajorityAndRestartedNodeJoins() {
@@ -62,7 +62,7 @@ class ElectionSimulationTest {
     @Test void oneSurvivingNodeCannotElectItself() {
         var sim = simulation(7); sim.crash(B, false); sim.crash(C, false); sim.runSteps(300);
         assertTrue(sim.leaders().isEmpty()); assertTrue(sim.leadersByTerm().isEmpty());
-        assertEquals(ElectionCore.Role.CANDIDATE, sim.status(A).role());
+        assertEquals(RaftNode.Role.CANDIDATE, sim.status(A).role());
         assertEquals(Set.of(A), sim.status(A).votes());
     }
 
@@ -77,12 +77,12 @@ class ElectionSimulationTest {
         assertEquals(persistPending ? wanted : before, sim.status(node).hardState());
         sim.injectEvent(node, new RaftEvent.PersistCompleted(oldId), 0);
         sim.injectEvent(node, new RaftEvent.PersistFailed(oldId, "stale"), 0);
-        sim.runSteps(500); assertNotEquals(ElectionCore.Role.FAILED, sim.status(node).role());
+        sim.runSteps(500); assertNotEquals(RaftNode.Role.FAILED, sim.status(node).role());
         assertEquals(1, sim.leaders().size());
     }
 
     @Test void durableWriteAndCompletionAreSeparateEvents() {
-        var sim = new ElectionSimulation(NODES, 5, new ElectionSimulation.Timing(100,200,20,5,10,500));
+        var sim = new RaftSimulation(NODES, 5, new RaftSimulation.Timing(100,200,20,5,10,500));
         until(sim, () -> NODES.stream().anyMatch(id -> sim.durableState(id).currentTerm() > sim.status(id).durableState().currentTerm()));
         NodeId node = NODES.stream().filter(id -> sim.durableState(id).currentTerm() > sim.status(id).durableState().currentTerm()).findFirst().orElseThrow();
         HardState written = sim.durableState(node); sim.crash(node, false); sim.restart(node);
@@ -92,7 +92,7 @@ class ElectionSimulationTest {
     @ParameterizedTest @ValueSource(booleans = {false,true})
     void unknownFailureOutcomeStopsNodeUntilRecovery(boolean written) {
         var sim = simulation(42); sim.failNextPersist(A, written);
-        until(sim, () -> sim.status(A).role() == ElectionCore.Role.FAILED);
+        until(sim, () -> sim.status(A).role() == RaftNode.Role.FAILED);
         assertEquals(written, sim.durableState(A).currentTerm() > 0);
         HardState saved = sim.durableState(A); sim.restart(A); assertEquals(saved, sim.status(A).hardState());
         sim.runSteps(500); assertEquals(1, sim.leaders().size());
@@ -144,7 +144,7 @@ class ElectionSimulationTest {
     }
 
     @Test void rejectsInvalidTimingUnknownNodeAndRestartOfLiveNode() {
-        assertThrows(IllegalArgumentException.class, () -> new ElectionSimulation.Timing(10,20,5,-1,0,0));
+        assertThrows(IllegalArgumentException.class, () -> new RaftSimulation.Timing(10,20,5,-1,0,0));
         var sim = simulation(1);
         assertThrows(IllegalArgumentException.class, () -> sim.status(new NodeId("x")));
         assertThrows(IllegalStateException.class, () -> sim.restart(A));

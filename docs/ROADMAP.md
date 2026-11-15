@@ -1,6 +1,6 @@
 # Дорожная карта QuorumLab
 
-Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0/M1 завершены после CI/merge PR #5. M2 реализован и локально проверен: Windows 230 выполненных случаев, WSL/ext4 256.** CI/merge M2 ожидают пользовательского push; M3–M9 не начаты.
+Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0–M2 завершены после CI/merge PR #6. M3 реализован и локально проверен: Windows 256 non-skipped, WSL/ext4 287/287.** CI/merge M3 ожидают пользовательского push; M4–M9 не начаты.
 
 ## Порядок и зависимости
 
@@ -59,7 +59,7 @@
 
 **Gate:** election/step-down/split-vote/restart tests проходят; не бывает двух легитимно избранных лидеров одного term. Живость проверяется после стабилизации связи.
 
-**Локальный gate выполнен:** 26 core + 14 simulator + 4 Linux integration новых cases; Linux 256/256, Windows 230 executed + 12 Linux methods skipped. Свидетельство run-WVW1bqw8, [ADR-004](adr/0004-deterministic-leader-election.md). Это экспериментальные проверки, не формальное доказательство; heartbeat ещё не AppendEntries. M3 не начат.
+**M2 gate выполнен:** 26 core + 14 simulator + 4 Linux integration новых cases; Linux 256/256, Windows 230 executed + 12 Linux methods skipped. Свидетельство run-WVW1bqw8, [ADR-004](adr/0004-deterministic-leader-election.md). PR #6 merged, CI PR/main Ubuntu/Windows success. В M3 временный heartbeat заменён полным AppendEntries.
 
 **Задачи:** QL-007…QL-009; T-01/T-02.
 
@@ -67,14 +67,14 @@
 
 **Результат:** реплицируемый журнал с корректным commit и apply.
 
-- [ ] Реализовать AppendEntries, проверку prevLogIndex/Term и восстановление конфликтующего неподтверждённого suffix.
-- [ ] Вести `nextIndex`/`matchIndex`; корректно обрабатывать повторы и запоздавшие ответы.
-- [ ] Связать положительные RPC-ответы с завершённым durable persist.
-- [ ] Реализовать current-term commit rule, сохранение commit metadata и ordered apply.
-- [ ] Добавить NO_OP нового лидера; проверить возврат старого лидера и сохранность committed prefix.
-- [ ] Добавить Figure 8 regression и assertions log matching/leader completeness/state-machine safety.
+- [x] Реализовать AppendEntries, проверку prevLogIndex/Term и восстановление конфликтующего неподтверждённого suffix.
+- [x] Вести `nextIndex`/`matchIndex`; корректно обрабатывать повторы и запоздавшие ответы.
+- [x] Связать положительные RPC-ответы с завершённым durable persist.
+- [x] Реализовать current-term commit rule, сохранение commit metadata и ordered apply.
+- [x] Добавить NO_OP нового лидера; проверить возврат старого лидера и сохранность committed prefix.
+- [x] Добавить Figure 8 regression и assertions log matching/leader completeness/state-machine safety.
 
-**Gate:** Figure 8 и safety simulation проходят; нельзя получить ложный commit по числу копий записи старого term.
+**Локальный gate выполнен:** Figure 8/safety simulation и real-WAL integration прошли; mutation probe без current-term guard дал ожидаемые падения (commit 2 вместо 0). WSL/ext4 run-AIH1CRxD: 287/287, Windows XML 256 non-skipped + 17 skipped. [ADR-005](adr/0005-durable-log-replication.md), [объяснение](REPLICATION.md). Remote gate ожидает CI/merge.
 
 **Задачи:** QL-010…QL-012; протокольная часть T-03…T-08.
 
@@ -174,11 +174,11 @@
 | QL-004 | M0 | Детерминированный event scheduler | Повтор событий даёт тот же порядок и результат | Выполнено: 8 тестов, включая повтор trace и равновременные события |
 | QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Выполнено: 69 случаев, PR #4 merged d00dcd7, CI main 43715944608 success |
 | QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Выполнено: PR #5 merged, CI PR/main success |
-| QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Реализовано/проверено локально; CI M2 ожидается |
-| QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Реализовано/проверено core, simulator и FileWal integration |
-| QL-009 | M2 | Election safety и split vote | T-01/T-02 и restart tests | Локальный gate M2 пройден, 100 seeded trials; CI/merge ожидаются |
-| QL-010 | M3 | AppendEntries consistency и append | Conflict repair сохраняет committed prefix | Не начато |
-| QL-011 | M3 | nextIndex/matchIndex | Репликация/повторы/запаздывающие ответы корректны | Не начато |
-| QL-012 | M3 | Current-term commit и Figure 8 | Regression ловит неправильное правило commit | Не начато |
+| QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Выполнено, PR #6 и CI PR/main success |
+| QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Выполнено, PR #6 и CI PR/main success |
+| QL-009 | M2 | Election safety и split vote | T-01/T-02 и restart tests | Выполнено, PR #6 и CI PR/main success |
+| QL-010 | M3 | AppendEntries consistency и append | Conflict repair сохраняет committed prefix | Локальный gate M3 пройден; CI/merge ожидаются |
+| QL-011 | M3 | nextIndex/matchIndex | Репликация/повторы/запаздывающие ответы корректны | Локальный gate M3 пройден; CI/merge ожидаются |
+| QL-012 | M3 | Current-term commit и Figure 8 | Regression ловит неправильное правило commit | Локальный gate M3 пройден; CI/merge ожидаются |
 
 Подробные issue-срезы для M4–M9 формируются перед соответствующим этапом. Дополнительные номера и сроки сейчас не выдумываются.
