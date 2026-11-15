@@ -81,9 +81,11 @@ Core выдаёт эффекты, runtime их исполняет. `step(RaftEve
 
 Обновление 2026-11-09: начальные решения O-02/O-03 реализованы в срезе контрактов и описаны в [ADR-002](adr/0002-core-events-and-virtual-time.md). Есть типы для голосования/HardState/таймеров, порты и scheduler. Порядок и отбрасывание устаревших completion пока заданы договором; исполняющий runtime и safety-тесты ещё предстоят. Полные log/apply/snapshot контракты будут уточняться перед их реализацией.
 
+Финальный срез M0: [ADR-001](adr/0001-scope-consistency-and-failure-model.md) фиксирует scope/consistency/failure model. O-01 закрыт в части выбора окружения: WSL2 Ubuntu, ext4, стенд `/home/amateru/quorumlab-lab`, Windows/Linux сборки прошли. Проверки fsync/recovery остаются в O-04/M1. Автоматические архитектурные правила защищают производственные classpaths и прямые зависимости/API core.
+
 | ID | Что уточнить | Почему существенно | Когда решить |
 |---|---|---|---|
-| O-01 | Windows как рабочая машина и Linux как целевая среда storage: WSL2, Docker/Linux или отдельный Linux-стенд | Проверки файловых гарантий должны выполняться в заявленной среде, не только в Windows JVM | Направление в M0, точный стенд до M1 |
+| O-01 | Выбран WSL2 Ubuntu/ext4; исходный checkout — Windows/VS Code, сборочные снимки и будущие data — в Linux | Filesystem проверен через findmnt; сборка не доказывает storage guarantees | Выбор/подготовка выполнены M0, fsync/recovery — M1 |
 | O-02 | Контракт зависимых эффектов: идентификаторы persist batch, ordering, ошибки, обработка устаревших completions после смены term | Список effects сам по себе не задаёт корректный persist → send/apply порядок | M0 |
 | O-03 | Границы `Storage`/`Transport`, DTO и виртуального clock; что именно входит в первый M0 slice | Не связать Raft с конкретным I/O и не отложить тестовый runtime до M7 | M0 |
 | O-04 | Durable checkpoint/offset, atomic HardState update, append/truncate/replay и точная tail policy | Нужно однозначно отличать допустимую незавершённую запись от потери устойчивых данных | До M1 реализации |

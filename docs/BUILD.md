@@ -43,6 +43,7 @@ Kotlin DSL — язык файлов настройки сборки. Исход
 - JUnit BOM/Jupiter **5.14.4**. BOM согласует версии компонентов JUnit; Jupiter предоставляет `@Test`, assertions и test engine. `junit-platform-launcher` используется при запуске тестов.
 - `useJUnitPlatform()` связывает Gradle Test task с JUnit Platform.
 - JUnit подключён через `testImplementation` и `testRuntimeOnly`. Он доступен тестам, но не является runtime-зависимостью приложения.
+- ArchUnit 1.5.1 подключён только к тестам core. `verifyCoreClasspath` запрещает любые production compile/runtime dependencies; четыре bytecode-правила проверяют границы core. Это часть обычного `test`, а значит `check`/`build` и CI.
 
 Пример: будущий `quorum-core/src/main/java/.../RaftCore.java` компилируется без JUnit. Тест `quorum-core/src/test/java/.../RaftCoreTest.java` сможет использовать `@Test` и `assertEquals`. Gradle строит отдельные classpath для этих двух наборов исходников.
 
@@ -94,9 +95,9 @@ Workflow запускается при push, pull request и вручную. М�
 
 Фактические результаты и команды записаны в [PROJECT_STATE](PROJECT_STATE.md). Для проверки JUnit использовался временный тест с Java 21 record pattern/switch и проверкой версии тестовой JVM. Сначала намеренно неверное ожидание делало сборку красной, затем корректное — зелёной. Probe подключался init script из игнорируемого `tmp/` и не входит в репозиторий или обычный `test`.
 
-9 ноября CI сборочного PR #1 подтверждён на Ubuntu и Windows. Следующий срез выполняет 44 постоянных тестовых случая: [объяснение контрактов и scheduler](CORE_AND_SCHEDULER.md). HTML-отчёты находятся в `quorum-core/build/reports/tests/test/index.html` и `quorum-simulator/build/reports/tests/test/index.html`; их также собирает существующий workflow.
+9 ноября CI PR #1/#2 подтверждён на Ubuntu и Windows. Срез контрактов/scheduler содержит 44 случая; финальный срез M0 добавил 16 архитектурных, всего 60. HTML-отчёты находятся в `quorum-core/build/reports/tests/test/index.html` и `quorum-simulator/build/reports/tests/test/index.html`; их также собирает существующий workflow. CI последнего среза ожидает push.
 
-Проверка сборки в WSL Ubuntu не доказывает Linux durability будущего storage: сборка выполнялась из Windows-папки через `/mnt/c`. Для M1 понадобится отдельная проверка файловой системы и fsync-контракта.
+Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`: результаты должны получаться на выбранном filesystem. Успешный прогон и manifest проверены. Это готовность стенда, не доказательство WAL/fsync/power-loss durability; такие проверки следуют в M1. [Разбор устройства стенда](M0_GUARDRAILS.md).
 
 ## Официальные источники
 

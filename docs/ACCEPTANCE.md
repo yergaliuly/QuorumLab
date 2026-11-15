@@ -15,19 +15,43 @@
 
 ## Свидетельства M0 contracts/scheduler от 9 ноября 2026
 
-Проверен исходный код ветки `feat/m0-core-contracts`, основанной на `3a0b5ee`; исходники, тесты и свидетельства входят в один локальный коммит этого среза. Push выполняет пользователь, новый GitHub CI ещё не проверен.
+Проверен исходный код `cea21865dfcd523e6d6a8ac2f1142b6181a5ec6c` ветки `feat/m0-core-contracts`, основанной на `3a0b5ee`. Пользователь отправил код и принял [PR #2](https://github.com/yergaliuly/QuorumLab/pull/2); merge `4a34a3fb196c08518d6f06683ec7ada25fab8f0d` имеет то же дерево файлов.
 
 | Проверка | Фактический результат |
 |---|---|
 | RED до реализации | CoreContractsTest: 36 случаев, 32 ожидаемых падения на отсутствии валидации. Scheduler: 8/8 ожидаемых падений на временных заглушках. Заглушки заменены реализацией |
 | Windows, Java 21 | `gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build`: SUCCESS; 36 core + 8 scheduler, failures/errors/skipped = 0 |
 | WSL Ubuntu, Java 21 | `./gradlew --no-daemon --console=plain --warning-mode=all clean test build`: SUCCESS; те же 44 случая, failures/errors/skipped = 0 |
+| GitHub PR CI | [Run 42648502160](https://github.com/yergaliuly/QuorumLab/actions/runs/42648502160), head cea2186: Ubuntu/Windows jobs и шаг `Build and test all Java modules` — success |
+| GitHub main CI после merge | [Run 42649004223](https://github.com/yergaliuly/QuorumLab/actions/runs/42649004223), head 4a34a3f: completed/success, оба jobs и шаг сборки/тестов — success |
 | Core runtimeClasspath | Нет зависимостей; production-код использует только JDK. Автоматический запрет framework/I/O пока не добавлен |
 | Simulator runtimeClasspath | Только `project :quorum-core`; новых внешних библиотек нет |
 
 Тесты: [CoreContractsTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/CoreContractsTest.java), [DeterministicSchedulerTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/DeterministicSchedulerTest.java). HTML/XML — в `quorum-{core,simulator}/build/reports/tests/test/` и `build/test-results/test/`. Локальные RED/Windows/WSL логи — игнорируемые `tmp/m0-contracts-*.log`, они не входят в репозиторий.
 
 Проверены локальная допустимость DTO, идентичность ID, порядок очереди, FIFO для равного времени, повтор trace, относительные задержки, пустая очередь и отказ при ошибках без изменения состояния. Из этого не следует корректность Raft, persist ordering, реального restart или диска: алгоритма/адаптеров пока нет. FR-12/NFR-05 покрыты только на уровне начального scheduler. S-02, остальные safety-инварианты и T-01…T-18 ещё не запускались. WSL-прогон из `/mnt/c` не является durability-проверкой Linux filesystem.
+
+## Свидетельства M0 guardrails/WSL от 9 ноября 2026
+
+Срез `chore/m0-architecture-guardrails` основан на `4a34a3f`, включает ранее подготовленные записи о CI PR #2. ADR-001 фиксирует scope/consistency/failure model и явно сохраняет отложенные вопросы. Локальный M0 gate выполнен; CI этого среза ожидает пользовательского push и не подменяется результатами PR #2.
+
+| Проверка | Фактический результат |
+|---|---|
+| Архитектурные fixtures RED → GREEN | Сначала 11 запрещённых примеров не обнаруживались permissive rule (11 падений из 13 случаев). После реализации все 11 обнаруживаются, допустимый пример проходит |
+| Production import и method reference | Временный `probe.ForbiddenClockProbe` вне пакета core, содержащий `System::nanoTime`, сделал корневой `test` красным по двум правилам; probe удалён |
+| Неиспользуемые зависимости | До verifyCoreClasspath лишняя compileOnly JUnit dependency позволяла тестам пройти; после добавления guard отдельные compileOnly/runtimeOnly probes завершились ожидаемым отказом с именами JAR |
+| Windows | `gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build`: SUCCESS; XML — 60 случаев, failures/errors/skipped = 0 |
+| WSL/ext4, финальный свежий прогон | `bash scripts/test-wsl.sh`, внутри `clean test build --no-build-cache`: SUCCESS; все 60 случаев выполнены в новом Linux-каталоге, failures/errors/skipped = 0, без FROM-CACHE |
+| Filesystem | Ubuntu 26.04.1 LTS, kernel 6.18.33.2-microsoft-standard-WSL2, OpenJDK 21.0.12.1; source snapshot и data-dir — ext4 `/dev/sdd`, mount data=ordered |
+| Отрицательный тест стенда | Попытка использовать `/mnt/c/.../tmp` отвергнута: фактический тип 9p, ожидается ext4. Bash syntax check прошёл |
+| Снимок исходников | SHA-256 manifest проверен; `.git`, tmp и старый build/cache не скопированы. source HEAD = 4a34a3f с незакоммиченными изменениями; точный состав кода задан manifest |
+| Зависимости | verifyCoreClasspath подтверждает пустые production compile/runtime classpaths. Test runtime содержит ArchUnit 1.5.1 и его SLF4J API 2.0.19 вместе с JUnit 5.14.4 |
+
+60 случаев = 36 DTO + 8 scheduler + 4 production architecture rules + 12 проверок самих правил. Классы: [CoreArchitectureTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/architecture/CoreArchitectureTest.java), [CoreArchitectureRulesTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/architecture/CoreArchitectureRulesTest.java). Проверки включены в обычный test, а значит в существующий CI workflow.
+
+Финальное Linux-свидетельство: `/home/amateru/quorumlab-lab/runs/run-XGIWiigS/`, внутри environment.txt, source.sha256, build.log и source/*/build/test-results/test. Будущий data-dir: `/home/amateru/quorumlab-lab/data`. Первый run-ECdNJ8Yj был успешен, но переиспользовал cache; финальный прогон повторён после отключения build cache в скрипте, чтобы не принимать сохранённые результаты за выполнение на выбранном filesystem. Прогоны не удалялись и содержимое data-dir не перезаписывалось.
+
+Артефакты стенда и локальные tmp/m0-*.log не входят в Git. После прогона изменялась проектная документация; проверенный исполняемый код сохранён без изменений. NFR-04 теперь защищён статическими проверками прямых зависимостей/API, но reflection/native обходы и общий детерминизм произвольного кода этим не доказываются. Готовность ext4-стенда не закрывает WAL recovery/fsync/power-loss гарантии M1.
 
 ## Функциональные требования
 
