@@ -4,7 +4,7 @@
 
 Главный результат — проверяемая корректность в заданной модели сбоев. Проект не предназначен для критичных данных или публичного production-развёртывания.
 
-**Статус на 15 ноября 2026:** M0/M1 завершены, PR #5 и main CI прошли. Реализован M2: детерминированные выборы лидера, persist-before-response, seeded виртуальный стенд трёх узлов и restart через настоящий WAL. Локально Windows 230 выполненных случаев, WSL/ext4 256 без ошибок. CI/merge M2 ожидают пользовательского push в [репозиторий](https://github.com/yergaliuly/QuorumLab). Полный AppendEntries/репликация, KV, реальная сеть, snapshots и ротация WAL ещё не реализованы.
+**Статус на 15 ноября 2026:** M0–M2 завершены, PR #6 и main CI прошли Ubuntu/Windows. Реализован M3: AppendEntries, исправление конфликтов лога, durable quorum commit/ordered apply и safety simulation. Локально Windows XML 256 non-skipped, WSL/ext4 287 случаев без ошибок. CI/merge M3 ожидают пользовательского push в [репозиторий](https://github.com/yergaliuly/QuorumLab). KV, реальная сеть, snapshots и ротация WAL ещё не реализованы.
 
 ## Сборка
 
@@ -29,6 +29,8 @@
 | [Формат WAL и codec](docs/WAL_CODEC.md) | Четыре операции, ByteBuffer/CRC32C, неполные и повреждённые записи, тесты |
 | [Файловый WAL и recovery](docs/WAL_STORAGE.md) | FileChannel/force, checkpoint, atomic batch, replay, сбои и найденные ошибки |
 | [Выборы лидера](docs/ELECTIONS.md) | Роли/term, majority, persistence barrier, seeded simulator и restart с WAL |
+| [Репликация и commit](docs/REPLICATION.md) | AppendEntries, progress, NO_OP/current-term rule, durable apply и примеры |
+| [ADR-005](docs/adr/0005-durable-log-replication.md) | Сериализация log persistence, корреляция RPC, границы apply/admission |
 | [ADR-001](docs/adr/0001-scope-consistency-and-failure-model.md) | Границы v1, согласованность, модель отказов и отложенные решения |
 | [ADR-002](docs/adr/0002-core-events-and-virtual-time.md) | Решения об идентификаторах, persist completion и порядке событий |
 | [ADR-003](docs/adr/0003-wal-checkpoint-and-recovery.md) | Протокол сохранения WAL, recovery policy, границы гарантий |

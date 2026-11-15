@@ -1,6 +1,6 @@
 # Матрица приёмки QuorumLab
 
-Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта проверок и фактических свидетельств. **M1 проверяет T-12/T-13 и storage-часть T-17; M2 добавил T-01/T-02 и election/restart-часть S-01/S-02 в указанной модели. Полные распределённые сценарии T-01…T-18 ещё не закрыты.** Исторические результаты не следует принимать за результаты более поздних этапов. После реализации сохраняем test path/команду, build/commit и артефакт прогона.
+Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта проверок и фактических свидетельств. **M1 проверяет T-12/T-13 и storage-часть T-17; M2 добавил election/restart; M3 — AppendEntries/commit/apply, Figure 8 и safety simulation. Полные распределённые клиентские сценарии T-01…T-18 ещё не закрыты.** Исторические результаты не следует принимать за результаты более поздних этапов. После реализации сохраняем test path/команду, build/commit и артефакт прогона.
 
 ## Свидетельства M0 build от 7 ноября 2026
 
@@ -208,7 +208,7 @@ S-02 подтверждён на границе storage completion, но зап�
 
 ## Свидетельства M2 leader election от 15 ноября 2026
 
-QL-007…QL-009, ветка `feat/m2-leader-election` от `eabf1b3`. [Дизайн](superpowers/specs/2026-11-15-leader-election-design.md), [ADR-004](adr/0004-deterministic-leader-election.md), [учебный разбор](ELECTIONS.md). Локальный gate выполнен; новый PR/CI/merge ожидают пользовательского push.
+QL-007…QL-009, ветка `feat/m2-leader-election` от `eabf1b3`. [Дизайн](superpowers/specs/2026-11-15-leader-election-design.md), [ADR-004](adr/0004-deterministic-leader-election.md), [учебный разбор](ELECTIONS.md). M2 завершён: [PR #6](https://github.com/yergaliuly/QuorumLab/pull/6) merged 6e05e41, [PR CI 43721366893](https://github.com/yergaliuly/QuorumLab/actions/runs/43721366893) и [main CI 43721479610](https://github.com/yergaliuly/QuorumLab/actions/runs/43721479610) completed/success, оба jobs Ubuntu/Windows success.
 
 | Проверка | Фактический результат |
 |---|---|
@@ -224,8 +224,37 @@ QL-007…QL-009, ветка `feat/m2-leader-election` от `eabf1b3`. [Диза�
 | WSL/ext4 | scripts/test-wsl.sh, fresh clean test build --no-build-cache SUCCESS, XML 256/256, failures/errors/skipped=0, без FROM-CACHE |
 | Архитектура | Core production classpaths пусты, ArchUnit rules прошли; simulator/storage используют core, integration добавил только test dependencies core/storage. Новых внешних библиотек нет |
 
-Новые тесты: [ElectionCoreTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/ElectionCoreTest.java) — 26; [ElectionSimulationTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/ElectionSimulationTest.java) — 14; [ElectionWalIntegrationTest](../quorum-integration/src/test/java/io/github/yergaliuly/quorumlab/integration/ElectionWalIntegrationTest.java) — 4. Новых 44 + прежних 212 = 256 Linux invocations.
+Новые тесты: [ElectionCoreTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/RaftNodeTest.java) — 26; [ElectionSimulationTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/RaftSimulationTest.java) — 14; [ElectionWalIntegrationTest](../quorum-integration/src/test/java/io/github/yergaliuly/quorumlab/integration/ElectionWalIntegrationTest.java) — 4. Новых 44 + прежних 212 = 256 Linux invocations.
 
 Свидетельство: `/home/amateru/quorumlab-lab/runs/run-WVW1bqw8/`, source HEAD eabf1b3 + незакоммиченный срез. environment.txt/source.sha256/build.log, 14 XML suites; system-out storage и integration подтверждает ext4 и test data внутри module build/tmp/test-files. После этого build менялась только документация. Windows логи и RED/GREEN — игнорируемые tmp/m2-*.log.
 
 Границы: election-only heartbeat без response/log matching не подтверждает replication/commit/quorum. Нет настоящей сети или трёхпроцессного Raft-кластера; real WAL integration пересоздаёт core и повторно открывает файлы в той же JVM, не заменяя M5. Отдельные child-JVM halt cases остаются в storage-наборе M1. Проверки не доказывают bounded election time, hardware power loss или все safety-свойства полной репликации. S-03…S-10 и клиентские сценарии сохраняют соответствующие будущие gates.
+
+## Свидетельства M3 log replication от 15 ноября 2026
+
+QL-010…QL-012, `feat/m3-log-replication` от merge 6e05e41. [Дизайн](superpowers/specs/2026-11-15-log-replication-design.md), [ADR-005](adr/0005-durable-log-replication.md), [разбор](REPLICATION.md). Локальный gate выполнен; push/новый CI/merge остаются пользователю.
+
+| Проверка | Фактический результат |
+|---|---|
+| Контракты | Новые типы сначала отсутствовали — compile RED; после реализации immutable entries/recovery/RPC/batches/proposal и лимиты прошли 4 cases |
+| Follower, S-02/S-03/S-07 | Prev mismatch, пустой append, сохранение лишнего совпавшего suffix, атомарный repair только uncommitted suffix, durable response/apply, duplicate during write, higher-term cancellation, unknown failure |
+| Leader, S-06 | Durable NO_OP до отправки, current-term commit до apply/advertise, stop-and-wait retry с тем же ID, stale negative и inflated success не меняют progress, higher-term response вызывает step-down |
+| Figure 8, T-08 | Трёхузловая адаптация: old-term entry есть на большинстве, но не committed; после сбоя лидера более свежий журнал заменяет uncommitted suffix. Последующий heal/restart сохраняет новый committed prefix |
+| Mutation probe | Временно удалён current-term guard; core regression и simulator Figure 8 оба упали с expected commit=0 / actual=2. Guard восстановлен перед финальной проверкой. Лог tmp/m3-unsafe-commit-probe.log |
+| Safety oracle, S-01…S-07 | Независимые проверки durable outbound prefix, election history, pairwise log matching, committed index→entry history, leader completeness при избрании, apply equality/order/bounds |
+| Fault/liveness smoke | 100 новых seeds × 50 действий с proposals/isolate/heal/crash/restart/disk failures; после стабилизации команда committed/applied на всех. Сохранены 100 M2 election trials. Это два JUnit cases, не 200 отдельных тестов и не доказательство для всех schedules |
+| Apply/recovery | Bounded ordered batches, matching completion, stale IDs/failure, replay только committed prefix; volatile consumer сбрасывается при restart |
+| Real WAL | 5 новых Linux cases: append сохранён до core ack/restart; atomic truncate+append+commit; commit-only heartbeat; invalid truncation без изменения checkpoint; 3 ядра + 3 настоящих WAL, пять commands + NO_OP и replay после открытия всех файлов |
+| Windows | clean test build SUCCESS; XML 273 registered, 256 non-skipped, 17 skipped Linux methods; failures/errors=0. 33 tasks: 26 executed, 7 FROM-CACHE (ранее проверенные outputs) |
+| WSL/ext4 | scripts/test-wsl.sh, свежий clean test build --no-build-cache SUCCESS; XML 287/287, failures/errors/skipped=0, 18 suites. 33 tasks: 22 executed, 11 up-to-date; FROM-CACHE нет |
+| Архитектура | Core classpath guards и ArchUnit прошли; I/O только в адаптере, внешний production dependency не добавлялся; WAL v1 bytes/codec tests сохраняются |
+
+Новые [ReplicationContractsTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/ReplicationContractsTest.java) — 4, [ReplicationCoreTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/ReplicationCoreTest.java) — 16, [ReplicationSimulationTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/ReplicationSimulationTest.java) — 6, [ReplicationWalIntegrationTest](../quorum-integration/src/test/java/io/github/yergaliuly/quorumlab/integration/ReplicationWalIntegrationTest.java) — 5. Всего 31 новый + 256 прежних = 287 Linux invocations. M2 тесты сохранены под именами RaftNodeTest/RaftSimulationTest.
+
+Свидетельство `/home/amateru/quorumlab-lab/runs/run-AIH1CRxD/`: source HEAD 6e05e41 с незакоммиченным M3, environment.txt/source.sha256/build.log и 18 XML suites. Storage/integration system-out показывает ext4 и файлы внутри module build/tmp/test-files. После финальной сборки изменялась только документация; исполняемые файлы сверяются с manifest перед commit. Windows и промежуточные логи — tmp/m3-*.log, не коммитятся.
+
+Сверка после сборки: все 104 файла manifest целы, 69 исполняемых/config files совпали с текущим checkout; 131 локальная ссылка корректна. Оригинальные требования не изменены.
+
+Непредвиденная ошибка была на компиляции нового тестового seed-helper: пропущен throws IOException для FileWal.persist. Сигнатура исправлена, integration compile и реальные Linux tests прошли. Намеренная mutation-проверка отдельно от этой ошибки; алгоритмических failures в итоговых прогонах нет.
+
+Покрыты FR-03 и протокольные части T-03/T-04/T-05/T-06/T-07/T-08 без KV/API. Клиентские PUT/GET outcomes, S-08 в полном смысле клиентского успеха, S-09/S-10, snapshots, настоящая сеть/три отдельных процесса и физический power loss остаются будущими gates. Это экспериментальные safety-проверки в описанной модели, не формальное доказательство Raft.

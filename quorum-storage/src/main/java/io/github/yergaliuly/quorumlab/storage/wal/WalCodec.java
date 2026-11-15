@@ -17,7 +17,7 @@ import java.util.zip.CRC32C;
 /** Stateless in-memory codec. Incomplete input is not a decision to discard a WAL tail. */
 public final class WalCodec {
     public static final int MAX_PAYLOAD_BYTES = 1_048_576;
-    public static final int MAX_COMMAND_BYTES = MAX_PAYLOAD_BYTES - 21;
+    public static final int MAX_COMMAND_BYTES = io.github.yergaliuly.quorumlab.core.LogEntry.MAX_COMMAND_BYTES;
     private static final int MAGIC = 0x5157414c;
     private static final int VERSION = 1;
     private static final int HEADER_BYTES = 11;

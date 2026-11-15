@@ -100,7 +100,7 @@ class FileWalLinuxTest {
             }
         };
         try (var wal = FileWal.open(io)) {
-            new WalStorage(wal, queue).persist(new Effect.PersistHardState(new OperationId(1, 1),
+            new WalStorage(wal, queue).persist(new Effect.PersistBatch(new OperationId(1, 1),
                     new HardState(2, Optional.empty(), 1)));
             var failure = assertInstanceOf(RaftEvent.PersistFailed.class, queue.remove());
             assertTrue(failure.reason().contains("No space left on device"), failure.reason());
