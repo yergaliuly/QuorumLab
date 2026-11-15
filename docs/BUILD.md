@@ -18,7 +18,7 @@
 ./gradlew clean test build
 ```
 
-В `quorum-core` и `quorum-simulator` теперь есть исходники и постоянные JUnit-тесты. В остальных восьми модулях `compileJava` и `test` пока показывают `NO-SOURCE`. Начальный временный probe в обычную suite не включён.
+В `quorum-core`, `quorum-simulator` и `quorum-storage` есть исходники и постоянные JUnit-тесты. В остальных семи модулях `compileJava` и `test` пока показывают `NO-SOURCE`. Начальный временный probe в обычную suite не включён.
 
 ## Что делает каждый файл
 
@@ -64,7 +64,7 @@ Kotlin DSL — язык файлов настройки сборки. Исход
 | `quorum-integration` | Многопроцессные и fault-injection tests |
 | `quorum-bench` | Workloads и обработка измерений |
 
-Первая межмодульная зависимость — `quorum-simulator → quorum-core`: scheduler использует NodeId и реализует MonotonicClock. Она объявлена через `api`, поскольку типы core входят в публичный API simulator. У core производственных зависимостей нет. Общая настройка находится в одном корневом скрипте; отдельный build-logic plugin сейчас добавил бы лишний слой. Если правила модулей существенно разойдутся, можно выделить convention plugins.
+Межмодульные зависимости — `quorum-simulator → quorum-core` (NodeId/MonotonicClock) и `quorum-storage → quorum-core` (NodeId в WAL records). Они объявлены через `api`, поскольку типы core входят в публичные API этих модулей. У core производственных зависимостей нет. Общая настройка находится в одном корневом скрипте; отдельный build-logic plugin сейчас добавил бы лишний слой. Если правила модулей существенно разойдутся, можно выделить convention plugins.
 
 `proto/` пока содержит только пояснение будущих схем. `quorum-dashboard/` — место для будущего React/TypeScript UI на M9; это не Java-модуль, он не входит в Gradle build. Фиктивные Java-классы для заполнения каталогов не создаются.
 
@@ -95,7 +95,7 @@ Workflow запускается при push, pull request и вручную. М�
 
 Фактические результаты и команды записаны в [PROJECT_STATE](PROJECT_STATE.md). Для проверки JUnit использовался временный тест с Java 21 record pattern/switch и проверкой версии тестовой JVM. Сначала намеренно неверное ожидание делало сборку красной, затем корректное — зелёной. Probe подключался init script из игнорируемого `tmp/` и не входит в репозиторий или обычный `test`.
 
-9 ноября CI PR #1/#2 подтверждён на Ubuntu и Windows. Срез контрактов/scheduler содержит 44 случая; финальный срез M0 добавил 16 архитектурных, всего 60. HTML-отчёты находятся в `quorum-core/build/reports/tests/test/index.html` и `quorum-simulator/build/reports/tests/test/index.html`; их также собирает существующий workflow. CI последнего среза ожидает push.
+CI PR #1/#2/#3 и main после merge подтверждён на Ubuntu/Windows, M0 завершён 15 ноября. Срез контрактов/scheduler содержит 44 случая, guardrails добавили 16, первый срез WAL codec — ещё 69. HTML-отчёты находятся в `quorum-{core,simulator,storage}/build/reports/tests/test/index.html`; их собирает существующий workflow. Локально прошли 129 случаев, новый CI WAL codec ожидает push.
 
 Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`: результаты должны получаться на выбранном filesystem. Успешный прогон и manifest проверены. Это готовность стенда, не доказательство WAL/fsync/power-loss durability; такие проверки следуют в M1. [Разбор устройства стенда](M0_GUARDRAILS.md).
 

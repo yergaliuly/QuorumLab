@@ -33,7 +33,7 @@
 
 ## Свидетельства M0 guardrails/WSL от 9 ноября 2026
 
-Срез `chore/m0-architecture-guardrails` основан на `4a34a3f`, включает ранее подготовленные записи о CI PR #2. ADR-001 фиксирует scope/consistency/failure model и явно сохраняет отложенные вопросы. Локальный M0 gate выполнен; CI этого среза ожидает пользовательского push и не подменяется результатами PR #2.
+Срез `chore/m0-architecture-guardrails`, коммит `27eba87`, основан на `4a34a3f`. ADR-001 фиксирует scope/consistency/failure model и явно сохраняет отложенные вопросы. 15 ноября пользователь принял [PR #3](https://github.com/yergaliuly/QuorumLab/pull/3), merge `9d16be8a80e0218e2b0553b6b7479473e8dd4d2f` сохранил то же дерево исходников. [PR CI 42657904435](https://github.com/yergaliuly/QuorumLab/actions/runs/42657904435) и [main CI 43712610759](https://github.com/yergaliuly/QuorumLab/actions/runs/43712610759) завершились success: оба jobs и их шаг сборки/тестов успешны. M0 gate закрыт.
 
 | Проверка | Фактический результат |
 |---|---|
@@ -52,6 +52,27 @@
 Финальное Linux-свидетельство: `/home/amateru/quorumlab-lab/runs/run-XGIWiigS/`, внутри environment.txt, source.sha256, build.log и source/*/build/test-results/test. Будущий data-dir: `/home/amateru/quorumlab-lab/data`. Первый run-ECdNJ8Yj был успешен, но переиспользовал cache; финальный прогон повторён после отключения build cache в скрипте, чтобы не принимать сохранённые результаты за выполнение на выбранном filesystem. Прогоны не удалялись и содержимое data-dir не перезаписывалось.
 
 Артефакты стенда и локальные tmp/m0-*.log не входят в Git. После прогона изменялась проектная документация; проверенный исполняемый код сохранён без изменений. NFR-04 теперь защищён статическими проверками прямых зависимостей/API, но reflection/native обходы и общий детерминизм произвольного кода этим не доказываются. Готовность ext4-стенда не закрывает WAL recovery/fsync/power-loss гарантии M1.
+
+## Свидетельства M1 WAL codec от 15 ноября 2026
+
+Первый срез M1 — `feat/m1-wal-codec` от `9d16be8`, QL-005. [Формат](superpowers/specs/2026-11-15-wal-codec-design.md) определяет record framing и payload; физическая запись/force/checkpoint/replay ещё отсутствуют. Новый GitHub CI ожидает пользовательского push, M1 целиком не закрыт.
+
+| Проверка | Фактический результат |
+|---|---|
+| RED → GREEN | До реализации 69/69 новых случаев падали на API-заглушках, отсутствии валидации и mutable byte arrays. После реализации все прошли |
+| Golden format | 6 фиксированных byte vectors для всех операций, включая отсутствие голоса и NO_OP; CRC рассчитан независимым побитовым Castagnoli-алгоритмом, reference `123456789` → e3069283 |
+| Decode boundaries | Все incomplete prefixes шести frames, ненулевая position, ограниченный limit, heap/direct/read-only/sliced buffers, входной little-endian и последовательные records |
+| Corruption/validation | Неизвестные version/type, неверные lengths, CRC повреждения header/payload/checksum, невозможные typed payload с правильным CRC, trailing bytes, strict UTF-8 и лимиты |
+| Immutable data | Defensive copies command при создании/чтении, equality/hashCode по содержимому; 200 generated roundtrips с фиксированным seed внутри одного JUnit-теста |
+| Windows | `gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build` — SUCCESS, XML: 129 случаев, failures/errors/skipped = 0 |
+| WSL/ext4 | `bash scripts/test-wsl.sh` → свежий `clean test build --no-build-cache` — SUCCESS, те же 129 случаев, failures/errors/skipped = 0, без FROM-CACHE |
+| Classpath | quorum-storage runtimeClasspath содержит только project :quorum-core; новых внешних библиотек нет, архитектурные правила core прошли |
+
+Новые тесты: [WalCodecTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/WalCodecTest.java) — 57 случаев, [WalRecordTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/WalRecordTest.java) — 12. Всего с 60 прежними — 129 JUnit-случаев, не 329; generated roundtrips не считаются отдельными JUnit invocation.
+
+Linux-свидетельство: `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/`, environment.txt, build.log, проверенный source.sha256 и XML всех шести test suites. Source HEAD 9d16be8 с незакоммиченным срезом, точный исполняемый код зафиксирован manifest. `.git` и tmp не скопированы. После прогона обновлялась документация; исполняемый код не менялся. Локальные логи — игнорируемые tmp/m1-*.log.
+
+Это часть проверки versioned disk format (NFR-08), но ещё не WAL recovery или durability. Optional.empty у decoder означает недостаток байтов, а не разрешение обрезать хвост. T-12/T-13/T-17 требуют будущих durable boundary и реального/симулируемого I/O; S-02 и S-08 этим срезом не закрываются.
 
 ## Функциональные требования
 

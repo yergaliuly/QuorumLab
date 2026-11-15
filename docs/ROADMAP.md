@@ -1,6 +1,6 @@
 # Дорожная карта QuorumLab
 
-Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 9 ноября 2026: **M0 локально готов: ADR-001/002, контракты, scheduler, архитектурные правила и WSL/ext4-стенд; 60 тестовых случаев проходят Windows/Linux. Ожидается CI финального среза после push; M1–M9 не начаты.** PR #1/#2 уже приняты, их CI подтверждён; это не заменяет CI новых guardrails.
+Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0 завершён по локальным и GitHub gates; M1 начат, QL-005 (формат/codec WAL) реализован и проверен локально. Всего 129 тестовых случаев проходят Windows/WSL.** CI среза M1 ожидает push, durable Storage/recovery ещё предстоят; M2–M9 не начаты.
 
 ## Порядок и зависимости
 
@@ -22,9 +22,9 @@
 - [x] Реализовать минимальный детерминированный event scheduler с устойчивым порядком равновременных событий и тестом повторяемой трассы.
 - [x] Подготовить CI skeleton; workflow проверен на PR #1/#2 и main, оба jobs Ubuntu/Windows прошли.
 - [x] Добавить автоматические правила отсутствия production dependencies и прямых обращений к I/O/времени/потокам/случайности в core. Проверены как negative fixtures, так и реальные временные нарушения в production/Gradle.
-- [ ] Подтвердить GitHub CI финального среза на Ubuntu/Windows после пользовательского push; только затем отметить M0 завершённым.
+- [x] Подтвердить GitHub CI финального среза: [PR #3](https://github.com/yergaliuly/QuorumLab/pull/3) merged, PR run 42657904435 и [main run 43712610759](https://github.com/yergaliuly/QuorumLab/actions/runs/43712610759) прошли Ubuntu/Windows.
 
-**Gate:** локально выполнен: полный clean/test/build на Windows и WSL/ext4, 60 случаев без failures/errors/skips, интерфейсы и ADR зафиксированы, scheduler проверяет реальное поведение. Остаётся фактический CI нового среза. Тесты протокольных переходов узла относятся к M2, как и реализация RaftCore; они не являются дополнительным скрытым gate M0.
+**Gate M0 выполнен 15 ноября:** локальный clean/test/build, 60 случаев, интерфейсы/ADR и реальное поведение scheduler; CI финального среза и main после merge подтверждены. Тесты протокольных переходов узла относятся к M2, как и реализация RaftCore.
 
 **Задачи:** QL-001…QL-004. **Не входит:** рабочие выборы, полная БД, dashboard.
 
@@ -32,8 +32,8 @@
 
 **Результат:** собственный WAL и durable metadata с однозначным recovery.
 
-- [ ] Зафиксировать binary format/version/CRC32C и максимальные длины records.
-- [ ] Реализовать encode/decode и записи `SET_HARD_STATE`, `APPEND_ENTRY`, `TRUNCATE_SUFFIX`, `SET_COMMIT_INDEX`.
+- [x] Зафиксировать binary format/version/CRC32C и максимальные длины records: [формат v1](superpowers/specs/2026-11-15-wal-codec-design.md), big-endian, payload <=1 MiB, CRC по header+payload.
+- [x] Реализовать encode/decode и записи `SET_HARD_STATE`, `APPEND_ENTRY`, `TRUNCATE_SUFFIX`, `SET_COMMIT_INDEX`: 69 новых тестовых случаев, включая golden vectors, corruption и incomplete prefixes. Файловая запись ещё не реализована.
 - [ ] Реализовать durable append и сохранение term/vote/commit metadata в корректном порядке.
 - [ ] Определить checkpoint/offset и восстановление segment state; commit не может ссылаться на недолговечную запись.
 - [ ] Различать incomplete tail и corruption устойчивой середины; при последней завершать startup с FAIL_CLOSED.
@@ -166,7 +166,7 @@
 | QL-002 | M0 | Gradle multi-module и CI | Wrapper/test работают; workflow подтверждён после появления remote | Выполнено: PR #1 merged, CI 42643809327 Ubuntu/Windows success |
 | QL-003 | M0 | RaftEvent, Effect, DTO, clock abstraction | Зафиксированы интерфейсы и порядок выполнения зависимых эффектов | Начальный объём выполнен: ADR-002 и 36 тестовых случаев; расширение контрактов в M1–M6 |
 | QL-004 | M0 | Детерминированный event scheduler | Повтор событий даёт тот же порядок и результат | Выполнено: 8 тестов, включая повтор trace и равновременные события |
-| QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Не начато |
+| QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Локально выполнено: 69 новых случаев, Windows/WSL; CI среза ожидает push |
 | QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Не начато |
 | QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Не начато |
 | QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Не начато |

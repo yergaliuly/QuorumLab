@@ -83,6 +83,8 @@ Core выдаёт эффекты, runtime их исполняет. `step(RaftEve
 
 Финальный срез M0: [ADR-001](adr/0001-scope-consistency-and-failure-model.md) фиксирует scope/consistency/failure model. O-01 закрыт в части выбора окружения: WSL2 Ubuntu, ext4, стенд `/home/amateru/quorumlab-lab`, Windows/Linux сборки прошли. Проверки fsync/recovery остаются в O-04/M1. Автоматические архитектурные правила защищают производственные classpaths и прямые зависимости/API core.
 
+Обновление 2026-11-15: M0 завершён после успешного CI PR #3/main. Начат M1: [формат WAL v1](superpowers/specs/2026-11-15-wal-codec-design.md), четыре typed records и encode/decode с CRC32C реализованы и проверены. O-04 остаётся открытым для atomic persist batch, durable checkpoint/offset, replay и tail policy; codec не принимает решения об отбрасывании хвоста.
+
 | ID | Что уточнить | Почему существенно | Когда решить |
 |---|---|---|---|
 | O-01 | Выбран WSL2 Ubuntu/ext4; исходный checkout — Windows/VS Code, сборочные снимки и будущие data — в Linux | Filesystem проверен через findmnt; сборка не доказывает storage guarantees | Выбор/подготовка выполнены M0, fsync/recovery — M1 |

@@ -1,12 +1,12 @@
 # Состояние QuorumLab
 
-Обновлено: 9 ноября 2026 года, Asia/Qyzylorda.
+Обновлено: 15 ноября 2026 года, Asia/Qyzylorda.
 
 ## Цель и текущий объём
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-M0 локально готов: сборка, начальные контракты/scheduler, ADR-001/002, архитектурные проверки и Linux/ext4-стенд. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. PR #1/#2 и их CI уже подтверждены. По прямому запросу реализован финальный срез в одной ветке `chore/m0-architecture-guardrails`; его новый CI после push остаётся последним M0 gate. Алгоритма Raft и I/O-адаптеров ещё нет.
+M0 завершён: PR #3 merged, CI PR и main прошли Ubuntu/Windows. По запросу «начинай следующий этап» начат M1; первый законченный срез — QL-005, формат и codec WAL в ветке `feat/m1-wal-codec`. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Файловый Storage, checkpoint/recovery и алгоритм Raft ещё не реализованы; M1 целиком не завершён.
 
 ## Учебный формат
 
@@ -19,6 +19,8 @@ M0 локально готов: сборка, начальные контрак�
 **Организация Git:** одна связная задача — одна активная рабочая ветка и PR; связанные код, тесты, документация и исправления остаются вместе. Не создавать ветки по файлам; крупный milestone можно разделить на несколько законченных срезов.
 
 **Дополнительно пройдено в финальном срезе:** ADR и различие целевых гарантий/свидетельств, compile/runtime/test classpath, bytecode-правила ArchUnit, method call vs method reference, отрицательные fixtures и реальные probes, WSL2/ext4 vs `/mnt/c`, Bash/rsync/mktemp, source snapshot/manifest, влияние Gradle build cache на проверку окружения. Учебный материал — [M0_GUARDRAILS](M0_GUARDRAILS.md).
+
+**Пройдено в первом срезе M1:** WAL и различие codec/persistence, binary framing, big-endian, ByteBuffer position/limit/duplicate/flip, CRC32C, strict UTF-8, defensive copy и equality массивов, golden vectors vs roundtrip, incomplete vs corruption. Запись/force/checkpoint/replay пока обсуждены как следующие задачи, а не реализованные технологии. Материал — [WAL_CODEC](WAL_CODEC.md).
 
 ## Что закреплено
 
@@ -34,21 +36,23 @@ M0 локально готов: сборка, начальные контрак�
 | Область | Состояние |
 |---|---|
 | Подготовка документации | Выполнена |
-| M0 Foundation | Все локальные пункты выполнены, 60 случаев прошли Windows и свежий WSL/ext4-прогон. Остаётся фактический GitHub CI финального среза после пользовательского push |
-| M1–M9 | Не начаты |
+| M0 Foundation | Завершён 15 ноября: локальные проверки и CI финального PR #3/main прошли, ADR/контракты/стенд/guards готовы |
+| M1 Storage | Начат: QL-005 локально выполнен, 69 новых случаев; физическая запись, checkpoint и recovery ещё предстоят |
+| M2–M9 | Не начаты |
 | QL-001 | Выполнено в объёме M0: ADR-001 фиксирует scope/API baseline/failure model, отложенные вопросы привязаны к M1/M4+ |
 | QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
 | QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
 | QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
-| QL-005…QL-012 | Не начаты |
-| Локальный Git | Одна ветка `chore/m0-architecture-guardrails` от `4a34a3f`; включает записи о CI PR #2 и финальный M0-срез. main соответствует origin/main на 4a34a3f. Origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | PR #2 merged; merge `4a34a3fb196c08518d6f06683ec7ada25fab8f0d`. PR CI 42648502160 и main CI 42649004223 — Ubuntu/Windows success |
+| QL-005 | Локально выполнено: frame/payload v1, четыре операции, encode/decode/CRC32C, 69 случаев; новый CI ожидает push |
+| QL-006…QL-012 | Не начаты |
+| Локальный Git | Одна ветка `feat/m1-wal-codec` от `9d16be8`; main fast-forward до origin/main, merged локальная chore/m0-architecture-guardrails удалена после ancestry check. Origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #3 merged; merge `9d16be8a80e0218e2b0553b6b7479473e8dd4d2f`. PR CI 42657904435 и main CI 43712610759 — Ubuntu/Windows success. M1 codec не отправлялся |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
 | Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu 26.04.1/OpenJDK 21.0.12.1; ext4 `/dev/sdd` проверен. Стенд `/home/amateru/quorumlab-lab`, будущий data-dir `/home/amateru/quorumlab-lab/data`. Docker ранее не найден в PATH; для M0 не нужен. WAL/fsync/recovery ещё не проверялись |
-| Код, сборка и тесты продукта | Два модуля с Java-исходниками; 60 случаев: 36 DTO, 8 scheduler, 16 architecture. Остальные восемь модулей — каркас. Simulator зависит от core; production classpaths ядра защищены Gradle, прямые типы/API — ArchUnit |
+| Код, сборка и тесты продукта | Три модуля с Java-исходниками; 129 случаев: прежние 60 и новые 57 codec + 12 WAL records. Семь модулей — каркас. Simulator/storage зависят от core; production classpaths ядра защищены Gradle, прямые типы/API — ArchUnit |
 
 ## Текущий учебный шаг
 
@@ -88,11 +92,23 @@ Windows clean/test/build прошёл, 60 случаев без failures/errors/
 
 Финальное свидетельство: `/home/amateru/quorumlab-lab/runs/run-XGIWiigS/`, source SHA-256 manifest проверен, XML-отчёты показывают ноль ошибок/пропусков и новый запуск всех четырёх test suites. В environment.txt указан исходный HEAD 4a34a3f и dirty status, поэтому проверенный код определяется manifest, а не приписывается старому коммиту. После этого обновлялась только документация. Это подготовка Linux-стенда, не проверка power loss или WAL durability.
 
+### Закрытие M0 и начало M1, 15 ноября
+
+Пользователь принял [PR #3](https://github.com/yergaliuly/QuorumLab/pull/3). Проверены [PR CI](https://github.com/yergaliuly/QuorumLab/actions/runs/42657904435) и [main CI](https://github.com/yergaliuly/QuorumLab/actions/runs/43712610759): оба jobs и build/test steps успешны, main run completed/success. Merge 9d16be8 не изменил дерево относительно 27eba87. M0 gate закрыт; новую локальную сборку только ради merge не повторяли.
+
+Для M1 выполнен узкий разбор существующего WAL-направления через brainstorming Superpowers и [план QL-005](superpowers/plans/2026-11-15-m1-wal-codec.md). Общая оболочка уже задана ТЗ; конкретные wire IDs, big-endian, 1 MiB limit и payload schemas зафиксированы как решения реализации в [дизайне v1](superpowers/specs/2026-11-15-wal-codec-design.md). Сравнены opaque payload-first и typed codec; выбран typed codec для четырёх операций с проверкой полей, без новых внешних библиотек. Это не повторное согласование стека и не изменение исходного объёма v1.
+
+Реализованы WalRecord (SetHardState, AppendEntry, TruncateSuffix, SetCommitIndex), WalCodec и WalFormatException. CRC32C покрывает header+payload, decode не потребляет вход при incomplete/error, UTF-8 строгий, command bytes защищены копиями. SET_HARD_STATE содержит term/vote, commit — отдельная операция; будущий Storage должен подтвердить нужный persist batch целиком. Codec не исполняет replay, не обрезает tail и не знает durable checkpoint.
+
+RED: до реализации 69 новых случаев падали на заглушках/невалидируемых records/mutable arrays. GREEN: новый набор прошёл, затем полный Windows и свежий WSL/ext4 build — 129 случаев без failures/errors/skips. Шесть golden vectors независимы от codec/JDK CRC, один тест дополнительно выполняет 200 generated roundtrips. Это 129 JUnit-случаев, не 329. Storage runtimeClasspath — только core, архитектурные guards core прошли.
+
+Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/`: новый прогон всех шести suites без build cache, source.sha256 проверен, `.git`/tmp не скопированы. HEAD снимка 9d16be8 + незакоммиченный срез, точный код определён manifest. После прогона менялась документация. Файловая durability и T-12/T-13/T-17 ещё не проверялись; нового CI нет до пользовательского push.
+
 ## Следующие шаги
 
-1. Пользователь отправляет `chore/m0-architecture-guardrails`; один PR содержит ADR, тесты, WSL-скрипт и документацию. Проверить новый CI обоих jobs, затем фактический merge/main и закрыть M0 по gate. До этого статус «локально готов, remote gate ожидается».
-2. Перед M1 разобрать O-04: WAL binary format/version/CRC32C, границы atomic HardState, append/truncate/replay и tail policy. Зафиксировать решение, затем реализовать codec и содержательные format/checksum tests.
-3. Storage-проверки запускать на подготовленном Linux/ext4-стенде через scripts/test-wsl.sh. Windows checkout остаётся source of truth; snapshots в WSL не редактировать как вторую рабочую ветку. Алгоритм выборов и проверки исполнения persist ordering/устаревших completion — M2.
+1. Пользователь отправляет `feat/m1-wal-codec`; один PR содержит формат, код, тесты, объяснение и записи о завершении M0. Проверить новый CI/merge; M0 уже закрыт и не требует повторного завершения.
+2. Следующий связанный срез M1/QL-006: конкретный контракт persist batch, segment/checkpoint identity и offset, порядок force/подтверждения, replay и fail-closed tail policy (остаток O-04). Сначала зафиксировать дизайн, затем файловый Storage и тесты partial writes/crash/ENOSPC. Нельзя объявлять кодек достаточным доказательством durability.
+3. Storage-проверки запускать на подготовленном Linux/ext4-стенде через scripts/test-wsl.sh. Windows checkout остаётся source of truth; snapshots в WSL не редактировать как вторую ветку. M1 закрывается только после WAL/HardState/crash-recovery gate; алгоритм выборов и проверки исполнения persist ordering — M2.
 
 ## Договорённости по объёму
 
@@ -120,3 +136,5 @@ Windows clean/test/build прошёл, 60 случаев без failures/errors/
 | 2026-11-09 | В feat/m0-core-contracts реализованы начальные DTO/порты и scheduler; 44 случая проходят Windows/WSL; ADR-002 и учебное объяснение записаны | Пользовательский push и CI; затем ADR-001 и архитектурные правила M0 |
 | 2026-11-09 | Пользователь принял PR #2; PR/main CI прошли Ubuntu/Windows на cea2186/4a34a3f. Локальный main обновлён, merged локальная ветка удалена; статус и границы M0 уточнены | Следующий единый срез: ADR-001, архитектурные проверки и выбор Linux-стенда перед M1 |
 | 2026-11-09 | По прямому запросу в chore/m0-architecture-guardrails оформлен ADR-001, добавлены Gradle/ArchUnit guards и скрипт WSL/ext4-стенда; 60 случаев проходят Windows и свежий Linux-прогон | Пользовательский push/PR, новый CI и завершение M0; далее O-04/WAL codec M1 |
+| 2026-11-15 | Пользователь принял PR #3; CI PR/main на Ubuntu/Windows подтверждён, main обновлён до 9d16be8. M0 gate закрыт | По запросу пользователя начат M1 |
+| 2026-11-15 | В feat/m1-wal-codec реализован QL-005: формат, четыре операции, CRC32C codec; 69 новых/129 общих случаев проходят Windows и WSL/ext4 | Пользовательский push/CI; затем persist batch, checkpoint и recovery QL-006 |
