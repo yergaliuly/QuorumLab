@@ -1,6 +1,6 @@
 # Дорожная карта QuorumLab
 
-Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0 завершён по локальным и GitHub gates; M1 начат, QL-005 (формат/codec WAL) реализован и проверен локально. Всего 129 тестовых случаев проходят Windows/WSL.** CI среза M1 ожидает push, durable Storage/recovery ещё предстоят; M2–M9 не начаты.
+Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0 завершён; QL-005 принят в PR #4. QL-006 (файловый WAL/checkpoint/recovery) реализован, локальный gate M1 выполнен: Windows 190 выполненных случаев, WSL/ext4 212.** CI/merge QL-006 ожидают пользовательского push; M2–M9 не начаты.
 
 ## Порядок и зависимости
 
@@ -34,12 +34,15 @@
 
 - [x] Зафиксировать binary format/version/CRC32C и максимальные длины records: [формат v1](superpowers/specs/2026-11-15-wal-codec-design.md), big-endian, payload <=1 MiB, CRC по header+payload.
 - [x] Реализовать encode/decode и записи `SET_HARD_STATE`, `APPEND_ENTRY`, `TRUNCATE_SUFFIX`, `SET_COMMIT_INDEX`: 69 новых тестовых случаев, включая golden vectors, corruption и incomplete prefixes. Файловая запись ещё не реализована.
-- [ ] Реализовать durable append и сохранение term/vote/commit metadata в корректном порядке.
-- [ ] Определить checkpoint/offset и восстановление segment state; commit не может ссылаться на недолговечную запись.
-- [ ] Различать incomplete tail и corruption устойчивой середины; при последней завершать startup с FAIL_CLOSED.
-- [ ] Проверить форматы, несовместимые версии, partial writes, force/crash boundaries, ENOSPC и replay на Linux.
+- [x] Реализовать durable append и atomic metadata batch: FileWal + WalStorage, успех после WAL/temp/directory force.
+- [x] Определить versioned checkpoint/UUID/byte offset и восстановление одного активного сегмента; commit не может ссылаться на отсутствующую запись. [ADR-003](adr/0003-wal-checkpoint-and-recovery.md).
+- [x] Различать suffix за checkpoint и corruption любого байта durable prefix; при последней startup FAIL_CLOSED, без fallback на temp.
+- [x] Проверить metadata formats, partial/zero writes, model force/crash boundaries, 15 реальных JVM halt boundaries, ENOSPC через /dev/full и seeded replay на ext4.
+- [ ] Подтвердить CI PR и main после пользовательского push/merge QL-006.
 
 **Gate:** WAL roundtrip, HardState persistence и crash-recovery tests проходят; восстановленное состояние совпадает с моделью. Гарантии ограничены проверенной моделью fsync, а не произвольным hardware power loss.
+
+**Локальный gate выполнен:** Windows/WSL clean test build успешны, Linux 212 случаев без ошибок/пропусков. Первый Linux run обнаружил lock bug и /tmp на tmpfs; исправления подтверждены новым ext4 run-aBKvD37K. Окончательный статус этапа — после CI/merge текущего среза.
 
 **Задачи:** QL-005…QL-006; часть T-12/T-13/T-17.
 
@@ -166,8 +169,8 @@
 | QL-002 | M0 | Gradle multi-module и CI | Wrapper/test работают; workflow подтверждён после появления remote | Выполнено: PR #1 merged, CI 42643809327 Ubuntu/Windows success |
 | QL-003 | M0 | RaftEvent, Effect, DTO, clock abstraction | Зафиксированы интерфейсы и порядок выполнения зависимых эффектов | Начальный объём выполнен: ADR-002 и 36 тестовых случаев; расширение контрактов в M1–M6 |
 | QL-004 | M0 | Детерминированный event scheduler | Повтор событий даёт тот же порядок и результат | Выполнено: 8 тестов, включая повтор trace и равновременные события |
-| QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Локально выполнено: 69 новых случаев, Windows/WSL; CI среза ожидает push |
-| QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Не начато |
+| QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Выполнено: 69 случаев, PR #4 merged d00dcd7, CI main 43715944608 success |
+| QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Реализовано и проверено локально: 83 новых случая, ADR-003; CI/merge ожидают push |
 | QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Не начато |
 | QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Не начато |
 | QL-009 | M2 | Election safety и split vote | T-01/T-02 и restart tests | Не начато |

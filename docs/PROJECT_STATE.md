@@ -6,7 +6,7 @@
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-M0 завершён: PR #3 merged, CI PR и main прошли Ubuntu/Windows. По запросу «начинай следующий этап» начат M1; первый законченный срез — QL-005, формат и codec WAL в ветке `feat/m1-wal-codec`. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Файловый Storage, checkpoint/recovery и алгоритм Raft ещё не реализованы; M1 целиком не завершён.
+M0 завершён. Первый срез M1 (WAL codec) принят в PR #4, main CI прошёл. По прямому запросу реализован QL-006: файловый WAL, checkpoint/recovery и metadata Storage bridge в одной ветке `feat/m1-durable-wal`. Локальный gate M1 пройден; окончательное закрытие этапа ожидает пользовательских push/PR/merge и CI. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Алгоритм Raft, KV, сеть, snapshot и ротация WAL ещё не реализованы.
 
 ## Учебный формат
 
@@ -21,6 +21,8 @@ M0 завершён: PR #3 merged, CI PR и main прошли Ubuntu/Windows. П
 **Дополнительно пройдено в финальном срезе:** ADR и различие целевых гарантий/свидетельств, compile/runtime/test classpath, bytecode-правила ArchUnit, method call vs method reference, отрицательные fixtures и реальные probes, WSL2/ext4 vs `/mnt/c`, Bash/rsync/mktemp, source snapshot/manifest, влияние Gradle build cache на проверку окружения. Учебный материал — [M0_GUARDRAILS](M0_GUARDRAILS.md).
 
 **Пройдено в первом срезе M1:** WAL и различие codec/persistence, binary framing, big-endian, ByteBuffer position/limit/duplicate/flip, CRC32C, strict UTF-8, defensive copy и equality массивов, golden vectors vs roundtrip, incomplete vs corruption. Запись/force/checkpoint/replay пока обсуждены как следующие задачи, а не реализованные технологии. Материал — [WAL_CODEC](WAL_CODEC.md).
+
+**Пройдено в QL-006:** FileChannel и short reads/writes, force(true), atomic move и отдельный directory force, checkpoint byte offset vs Raft commitIndex, atomic batch, неизвестный исход ошибки, poison/reopen, streaming replay и логические инварианты, UUID/CRC metadata, advisory FileLock и same-JVM registry, event queue, disk model vs process halt vs power loss. Разобраны реальные ошибки lock-дескрипторов и JUnit /tmp на tmpfs. Материал — [WAL_STORAGE](WAL_STORAGE.md), решение — [ADR-003](adr/0003-wal-checkpoint-and-recovery.md).
 
 ## Что закреплено
 
@@ -37,22 +39,23 @@ M0 завершён: PR #3 merged, CI PR и main прошли Ubuntu/Windows. П
 |---|---|
 | Подготовка документации | Выполнена |
 | M0 Foundation | Завершён 15 ноября: локальные проверки и CI финального PR #3/main прошли, ADR/контракты/стенд/guards готовы |
-| M1 Storage | Начат: QL-005 локально выполнен, 69 новых случаев; физическая запись, checkpoint и recovery ещё предстоят |
+| M1 Storage | Реализован и локально проверен: Windows 190 выполненных случаев, WSL/ext4 212, ошибок нет. CI/merge нового среза ожидают push |
 | M2–M9 | Не начаты |
 | QL-001 | Выполнено в объёме M0: ADR-001 фиксирует scope/API baseline/failure model, отложенные вопросы привязаны к M1/M4+ |
 | QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
 | QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
 | QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
-| QL-005 | Локально выполнено: frame/payload v1, четыре операции, encode/decode/CRC32C, 69 случаев; новый CI ожидает push |
-| QL-006…QL-012 | Не начаты |
-| Локальный Git | Одна ветка `feat/m1-wal-codec` от `9d16be8`; main fast-forward до origin/main, merged локальная chore/m0-architecture-guardrails удалена после ancestry check. Origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | PR #3 merged; merge `9d16be8a80e0218e2b0553b6b7479473e8dd4d2f`. PR CI 42657904435 и main CI 43712610759 — Ubuntu/Windows success. M1 codec не отправлялся |
+| QL-005 | Выполнено: PR #4 merged d00dcd7, codec d49e521; CI PR/push/main прошли Ubuntu/Windows |
+| QL-006 | Реализовано: атомарный persist batch, versioned checkpoint, replay/tail policy, Storage bridge, disk fault model и Linux tests; 83 новых случая, локальный gate пройден |
+| QL-007…QL-012 | Не начаты |
+| Локальный Git | Одна рабочая ветка `feat/m1-durable-wal` от `d00dcd7`; main fast-forward до origin/main. Заметки прошлого CI перенесены в этот срез без отдельного PR. Origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #4 merged d00dcd768f41df0583532853cd985dc7eb5c5b16; main CI 43715944608 — оба jobs success. Новый срез QL-006 ещё не отправлялся |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
-| Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu 26.04.1/OpenJDK 21.0.12.1; ext4 `/dev/sdd` проверен. Стенд `/home/amateru/quorumlab-lab`, будущий data-dir `/home/amateru/quorumlab-lab/data`. Docker ранее не найден в PATH; для M0 не нужен. WAL/fsync/recovery ещё не проверялись |
-| Код, сборка и тесты продукта | Три модуля с Java-исходниками; 129 случаев: прежние 60 и новые 57 codec + 12 WAL records. Семь модулей — каркас. Simulator/storage зависят от core; production classpaths ядра защищены Gradle, прямые типы/API — ArchUnit |
+| Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu/OpenJDK 21; ext4 стенд `/home/amateru/quorumlab-lab`. WAL tests создают данные внутри ext4 source snapshot/build/tmp/test-files, будущие node data — отдельный `data/`. Проверены force/recovery/process halt; физический power loss не проверен |
+| Код, сборка и тесты продукта | Три модуля с Java-исходниками; Linux 212 случаев, Windows 190 выполненных + 8 skipped Linux methods. Семь модулей — каркас. Simulator/storage зависят только от core; guards и все проверки проходят |
 
 ## Текущий учебный шаг
 
@@ -106,15 +109,15 @@ Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/
 
 ## Следующие шаги
 
-1. Пользователь отправляет `feat/m1-wal-codec`; один PR содержит формат, код, тесты, объяснение и записи о завершении M0. Проверить новый CI/merge; M0 уже закрыт и не требует повторного завершения.
-2. Следующий связанный срез M1/QL-006: конкретный контракт persist batch, segment/checkpoint identity и offset, порядок force/подтверждения, replay и fail-closed tail policy (остаток O-04). Сначала зафиксировать дизайн, затем файловый Storage и тесты partial writes/crash/ENOSPC. Нельзя объявлять кодек достаточным доказательством durability.
-3. Storage-проверки запускать на подготовленном Linux/ext4-стенде через scripts/test-wsl.sh. Windows checkout остаётся source of truth; snapshots в WSL не редактировать как вторую ветку. M1 закрывается только после WAL/HardState/crash-recovery gate; алгоритм выборов и проверки исполнения persist ordering — M2.
+1. Пользователь отправляет `feat/m1-durable-wal`, создаёт один PR и выполняет merge после CI. Ассистент проверяет CI PR/main и обновляет локальный main; до этого не отмечать remote gate как пройденный.
+2. После подтверждения этого среза — M2/QL-007…QL-009: детерминированные follower/candidate/leader, RequestVote, таймеры/seeded random, persist-before-response, split vote и restart. Это следующий запрос, не начатая сейчас реализация.
+3. При изменениях storage использовать scripts/test-wsl.sh; JUnit temporary files обязаны оставаться в build/tmp/test-files снимка, а не /tmp (tmpfs). Snapshot — свидетельство, не второй редактируемый checkout. Не обобщать process halt и model crash на hardware power loss.
 
 ## Договорённости по объёму
 
 Опорный замысел из файлов: одна группа, три узла, линейризуемые KV-операции, WAL и snapshots, клиентская дедупликация, чистое ядро и общий алгоритм для симулятора/реального runtime. Dashboard — после M4–M8. Оптимизация ReadIndex — последующее отдельное решение, стартовый GET идёт через Raft-log.
 
-Срок 12–20 недель в ТЗ — ориентир автора, не согласованный календарный план. Выбраны Gradle 9.9.0/JUnit 5.14.4/Java 21/ArchUnit 1.5.1 и WSL Ubuntu/ext4-стенд. Лицензия, HTTP-adapter и точная методика crash/durability-проверок ещё не выбраны.
+Срок 12–20 недель в ТЗ — ориентир автора, не согласованный календарный план. Выбраны Gradle 9.9.0/JUnit 5.14.4/Java 21/ArchUnit 1.5.1 и WSL Ubuntu/ext4-стенд. Методика M1 crash/durability описана ADR-003: модель диска плюс реальные filesystem/process tests. Лицензия и HTTP-adapter ещё не выбраны.
 
 ## Проверки подготовки
 
@@ -138,3 +141,14 @@ Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/
 | 2026-11-09 | По прямому запросу в chore/m0-architecture-guardrails оформлен ADR-001, добавлены Gradle/ArchUnit guards и скрипт WSL/ext4-стенда; 60 случаев проходят Windows и свежий Linux-прогон | Пользовательский push/PR, новый CI и завершение M0; далее O-04/WAL codec M1 |
 | 2026-11-15 | Пользователь принял PR #3; CI PR/main на Ubuntu/Windows подтверждён, main обновлён до 9d16be8. M0 gate закрыт | По запросу пользователя начат M1 |
 | 2026-11-15 | В feat/m1-wal-codec реализован QL-005: формат, четыре операции, CRC32C codec; 69 новых/129 общих случаев проходят Windows и WSL/ext4 | Пользовательский push/CI; затем persist batch, checkpoint и recovery QL-006 |
+| 2026-11-15 | Подтверждён push d49e521 и открытый PR #4; PR CI 43715288132 completed/success, оба jobs и build/test steps успешны. Push CI тоже прошёл оба jobs | Пользовательский merge PR #4; затем дизайн и реализация QL-006. Новая реализация этим запросом не начиналась |
+
+### Файловый WAL, 15 ноября
+
+Пользователь принял PR #4; проверены merge d00dcd7 и оба успешных jobs main CI 43715944608. Main обновлён без изменения исходников кодека, создана одна ветка feat/m1-durable-wal. Реализованы FileWal/NioWalIo, immutable WalState с replay validation, WalMetadata header/checkpoint, WalStorage bridge и fault model. План — [QL-006](superpowers/plans/2026-11-15-m1-durable-wal.md), архитектура — ADR-003; новых зависимостей нет. Работа выполнена одним агентом.
+
+18 state/metadata и 43 protocol/bridge tests прошли RED → GREEN. Первый Linux run нашёл lock bug (закрытие второго дескриптора снимало OS lock первого) и неправильный test data location (/tmp=tmpfs). Исправлены предварительным JVM registry и java.io.tmpdir внутри build; regression включает отдельную JVM и проверку filesystem.
+
+Финальные clean test build: Windows — 190 выполненных + 8 skipped Linux methods, WSL/ext4 — 212 выполненных, failures/errors/skipped=0. Свидетельство run-aBKvD37K: все 11 suites запускались без build cache, test data на ext4, 15 JVM halt boundaries и реальный ENOSPC через /dev/full. 100 seeded history steps внутри одного теста совпали с reference. Код после этого прогона не менялся, дополнена документация. Предупреждение Gradle о старом registering-синтаксисе в существующем quorum-core/build.gradle.kts остаётся техническим долгом перед Gradle 10, сборку не ломает.
+
+Локальный M1 gate выполнен. Новый remote CI ещё не запускался; пользователь делает push. Следующий содержательный этап после CI/merge — M2. Нет доказательства hardware power loss, реализации Raft/RPC ordering/трёхузлового runtime, snapshot или segment rotation.
