@@ -6,7 +6,7 @@
 
 Создать инженерный портфолио-проект: Java KV-store с собственной реализацией Raft, устойчивым хранением и воспроизводимой симуляцией отказов. Главный критерий — корректность, подтверждённая тестами в явно заданной модели отказов.
 
-M0 завершён. Первый срез M1 (WAL codec) принят в PR #4, main CI прошёл. По прямому запросу реализован QL-006: файловый WAL, checkpoint/recovery и metadata Storage bridge в одной ветке `feat/m1-durable-wal`. Локальный gate M1 пройден; окончательное закрытие этапа ожидает пользовательских push/PR/merge и CI. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Алгоритм Raft, KV, сеть, snapshot и ротация WAL ещё не реализованы.
+M0/M1 завершены: PR #5 принят, CI PR/main прошли Ubuntu/Windows. По прямому запросу реализован M2/QL-007…QL-009 в одной ветке `feat/m2-leader-election`: election core, seeded виртуальный стенд трёх узлов и интеграция с WAL. Локальный gate M2 пройден; remote gate ожидает пользовательских push/PR/merge и CI. **Ассистент сам пишет код и тесты, выполняет проверки и локальные действия Git, объясняет технологии, логику, ошибки и исправления; push выполняет пользователь.** Computer use запрещён, редактор — VS Code, префикс `codex` в ветках запрещён. Репликация лога/полный AppendEntries, KV, реальная сеть, snapshot и ротация WAL ещё не реализованы.
 
 ## Учебный формат
 
@@ -24,6 +24,8 @@ M0 завершён. Первый срез M1 (WAL codec) принят в PR #4,
 
 **Пройдено в QL-006:** FileChannel и short reads/writes, force(true), atomic move и отдельный directory force, checkpoint byte offset vs Raft commitIndex, atomic batch, неизвестный исход ошибки, poison/reopen, streaming replay и логические инварианты, UUID/CRC metadata, advisory FileLock и same-JVM registry, event queue, disk model vs process halt vs power loss. Разобраны реальные ошибки lock-дескрипторов и JUnit /tmp на tmpfs. Материал — [WAL_STORAGE](WAL_STORAGE.md), решение — [ADR-003](adr/0003-wal-checkpoint-and-recovery.md).
 
+**Пройдено в M2:** follower/candidate/leader/failed, term vs OperationId/incarnation, большинство 2/3 и Set голосов, lexicographic log freshness, randomized timeout и seeded RNG, heartbeat election-only, current vs durable state, сериализация persist и отмена старого ответа, stale timers/completions, split vote, partition/heal, лидеры разных terms, виртуальный driver и trace, 100 seeded fault trials, реальный restart с WAL. Материал — [ELECTIONS](ELECTIONS.md), [ADR-004](adr/0004-deterministic-leader-election.md).
+
 ## Что закреплено
 
 - Сохранены без изменения полная спецификация v1.0 и поясняющий исходный текст.
@@ -39,23 +41,25 @@ M0 завершён. Первый срез M1 (WAL codec) принят в PR #4,
 |---|---|
 | Подготовка документации | Выполнена |
 | M0 Foundation | Завершён 15 ноября: локальные проверки и CI финального PR #3/main прошли, ADR/контракты/стенд/guards готовы |
-| M1 Storage | Реализован и локально проверен: Windows 190 выполненных случаев, WSL/ext4 212, ошибок нет. CI/merge нового среза ожидают push |
-| M2–M9 | Не начаты |
+| M1 Storage | Завершён: локальные gates + PR #5 merged eabf1b3, CI PR/main Ubuntu/Windows success |
+| M2 Election | Реализован и локально проверен: 44 новых cases, Windows 230 выполненных, WSL/ext4 256. CI/merge нового среза ожидают push |
+| M3–M9 | Не начаты |
 | QL-001 | Выполнено в объёме M0: ADR-001 фиксирует scope/API baseline/failure model, отложенные вопросы привязаны к M1/M4+ |
 | QL-002 | Выполнено: PR #1 merged, реальный CI 42643809327 Ubuntu/Windows success |
 | QL-003 | Начальный объём выполнен: RaftCore, события/эффекты, DTO голосования/HardState, порты; ADR-002 задаёт ordering. Расширение log/apply/snapshot в M1–M6 |
 | QL-004 | Выполнено: scheduler с `(timeNanos, insertionOrder)`, 8 тестов |
 | QL-005 | Выполнено: PR #4 merged d00dcd7, codec d49e521; CI PR/push/main прошли Ubuntu/Windows |
-| QL-006 | Реализовано: атомарный persist batch, versioned checkpoint, replay/tail policy, Storage bridge, disk fault model и Linux tests; 83 новых случая, локальный gate пройден |
-| QL-007…QL-012 | Не начаты |
-| Локальный Git | Одна рабочая ветка `feat/m1-durable-wal` от `d00dcd7`; main fast-forward до origin/main. Заметки прошлого CI перенесены в этот срез без отдельного PR. Origin `https://github.com/yergaliuly/QuorumLab.git` |
-| GitHub | PR #4 merged d00dcd768f41df0583532853cd985dc7eb5c5b16; main CI 43715944608 — оба jobs success. Новый срез QL-006 ещё не отправлялся |
+| QL-006 | Выполнено: PR #5 merged eabf1b3, CI PR 43718265515 / main 43718416419 success |
+| QL-007…QL-009 | Реализовано: ElectionCore, RequestVote/persist ordering, heartbeat timers, seeded simulator и restart tests; ожидает push/CI/merge |
+| QL-010…QL-012 | Не начаты |
+| Локальный Git | Одна рабочая ветка `feat/m2-leader-election` от `eabf1b3`; main fast-forward до origin/main. Origin `https://github.com/yergaliuly/QuorumLab.git` |
+| GitHub | PR #5 merged eabf1b3ec692327e4cbb19f9493ac78f8f108cea; PR CI 43718265515 и main CI 43718416419 completed/success, оба jobs Ubuntu/Windows success. M2 ещё не отправлялся |
 | Автор коммитов | Локально: `yergaliuly <244538599+yergaliuly@users.noreply.github.com>`; глобальный автор других проектов не изменён |
 | HTTPS-доступ к GitHub | Локальный Git Credential Manager содержит yergaliuly; его credential проверен через GitHub API `/user` и `/repos/yergaliuly/QuorumLab`, login совпал и `permissions.push=true` |
 | Java/JDK и Git | Локальная проверка: Temurin OpenJDK 21.0.12.1, javac 21.0.12.1; Git работает, main и origin/main совпали после push |
 | Редактор | VS Code; пользователь подтвердил установку предложенных расширений Java |
 | Gradle/Docker/WSL окружение | Wrapper Gradle 9.9.0; WSL2 Ubuntu/OpenJDK 21; ext4 стенд `/home/amateru/quorumlab-lab`. WAL tests создают данные внутри ext4 source snapshot/build/tmp/test-files, будущие node data — отдельный `data/`. Проверены force/recovery/process halt; физический power loss не проверен |
-| Код, сборка и тесты продукта | Три модуля с Java-исходниками; Linux 212 случаев, Windows 190 выполненных + 8 skipped Linux methods. Семь модулей — каркас. Simulator/storage зависят только от core; guards и все проверки проходят |
+| Код, сборка и тесты продукта | Production Java в core/storage/simulator; integration содержит Linux tests с test-only dependencies core/storage. Linux 256 случаев, Windows 230 выполненных + 12 skipped Linux methods. Core guards и все проверки проходят; новых внешних библиотек нет |
 
 ## Текущий учебный шаг
 
@@ -109,8 +113,8 @@ Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/
 
 ## Следующие шаги
 
-1. Пользователь отправляет `feat/m1-durable-wal`, создаёт один PR и выполняет merge после CI. Ассистент проверяет CI PR/main и обновляет локальный main; до этого не отмечать remote gate как пройденный.
-2. После подтверждения этого среза — M2/QL-007…QL-009: детерминированные follower/candidate/leader, RequestVote, таймеры/seeded random, persist-before-response, split vote и restart. Это следующий запрос, не начатая сейчас реализация.
+1. Пользователь отправляет `feat/m2-leader-election`, создаёт один PR и выполняет merge после CI. Ассистент проверяет CI PR/main и обновляет локальный main; до этого remote gate M2 не закрыт.
+2. После подтверждения M2 — M3/QL-010…QL-012: полноценный AppendEntries вместо election-only heartbeat, log matching/conflict repair, nextIndex/matchIndex, current-term commit и ordered apply. Это следующий запрос; реализации M3 сейчас нет.
 3. При изменениях storage использовать scripts/test-wsl.sh; JUnit temporary files обязаны оставаться в build/tmp/test-files снимка, а не /tmp (tmpfs). Snapshot — свидетельство, не второй редактируемый checkout. Не обобщать process halt и model crash на hardware power loss.
 
 ## Договорённости по объёму
@@ -152,3 +156,13 @@ Linux-свидетельство `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH/
 Финальные clean test build: Windows — 190 выполненных + 8 skipped Linux methods, WSL/ext4 — 212 выполненных, failures/errors/skipped=0. Свидетельство run-aBKvD37K: все 11 suites запускались без build cache, test data на ext4, 15 JVM halt boundaries и реальный ENOSPC через /dev/full. 100 seeded history steps внутри одного теста совпали с reference. Код после этого прогона не менялся, дополнена документация. Предупреждение Gradle о старом registering-синтаксисе в существующем quorum-core/build.gradle.kts остаётся техническим долгом перед Gradle 10, сборку не ломает.
 
 Локальный M1 gate выполнен. Новый remote CI ещё не запускался; пользователь делает push. Следующий содержательный этап после CI/merge — M2. Нет доказательства hardware power loss, реализации Raft/RPC ordering/трёхузлового runtime, snapshot или segment rotation.
+
+### M2: выборы лидера, 15 ноября
+
+По запросу пользователя проверен merge PR #5 eabf1b3 и CI PR 43718265515/main 43718416419: completed/success, Ubuntu/Windows jobs success. Дерево merge совпало с проверенным cd826e1; main fast-forward, создана одна ветка feat/m2-leader-election. M1 закрыт. M2 выполнялся одним агентом по [плану](superpowers/plans/2026-11-15-m2-leader-election.md), детали в ADR-004.
+
+ElectionCore реализует роли, RequestVote/log freshness, membership, term/self-vote до RequestVote, vote до granted response, Set голосов, step-down, timer IDs и FAILED. Current/durable metadata разделены; higher-term event не ждёт I/O для step-down, но следующий persist и dependent send ждут matching completion. Временный Heartbeat election-only, не AppendEntries/quorum proof. SeededRandomSource и ElectionSimulation исполняют effects через M0 scheduler; persistent metadata, write/completion delay, crash outcomes, isolate/heal/restart и trace. quorum-integration впервые содержит Java tests с test-only dependencies core/storage.
+
+26 core и 14 simulator cases прошли RED → GREEN; дополнительных непредвиденных ошибок не обнаружено. Полный Windows build: 230 executed + 12 Linux methods skipped, 0 failures/errors. Fresh WSL run-WVW1bqw8: 256/256, 0 failures/errors/skips, без build cache; storage и integration test data подтверждены как ext4. Включены 100 seeded fault trials, repeatable trace и 4 настоящих WAL integration tests. Core architecture/classpath guards прошли. После прогона менялась только документация.
+
+Локальный gate M2 выполнен; remote CI этого среза ещё не было. Push выполняет пользователь. Следующий этап после его CI/merge — M3 (полноценный AppendEntries, replication/commit/apply), не real network M5. Старое предупреждение Gradle registering перед Gradle 10 остаётся без изменений.

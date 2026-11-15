@@ -88,4 +88,4 @@ Windows: 190 выполненных случаев; Linux methods явно skipp
 
 Crash model различает volatile bytes, forced bytes и durable namespace. Runtime.halt проверяет гибель процесса, сохраняя ОС живой. Ни одна из этих проверок не равна физическому отключению питания WSL/накопителя. Гарантии ограничены описанной моделью Linux local FS; сетевые FS и durability Windows не проверены. Вызов force/atomic move без поддержки приводит к ошибке, слабого fallback нет.
 
-После push/CI/merge этого среза следующий этап — M2: follower/candidate/leader, выборы и зависимость ответа от PersistCompleted. Подробные свидетельства и текущий статус — в [PROJECT_STATE](PROJECT_STATE.md).
+Этот срез принят в PR #5, CI PR/main прошли. Следующий M2 уже реализовал follower/candidate/leader и зависимость ответа от PersistCompleted: [ELECTIONS](ELECTIONS.md). Подробные свидетельства и текущий статус — в [PROJECT_STATE](PROJECT_STATE.md).
