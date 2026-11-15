@@ -95,9 +95,9 @@ Workflow запускается при push, pull request и вручную. М�
 
 Фактические результаты и команды записаны в [PROJECT_STATE](PROJECT_STATE.md). Для проверки JUnit использовался временный тест с Java 21 record pattern/switch и проверкой версии тестовой JVM. Сначала намеренно неверное ожидание делало сборку красной, затем корректное — зелёной. Probe подключался init script из игнорируемого `tmp/` и не входит в репозиторий или обычный `test`.
 
-CI PR #1–#4 и main после merge подтверждён на Ubuntu/Windows. QL-006 добавил 83 случая к прежним 129: на Linux всего 212 выполненных, на Windows 190 выполненных и 8 skipped Linux methods (параметризованный метод разворачивается в 15 случаев только на Linux). HTML-отчёты находятся в `quorum-{core,simulator,storage}/build/reports/tests/test/index.html`; их собирает существующий workflow. CI QL-006 ожидает push.
+CI PR #1–#5 и main после merge подтверждён на Ubuntu/Windows. M2 добавил 44 случая к прежним 212: на Linux всего 256 выполненных, на Windows 230 выполненных и 12 skipped Linux methods (один параметризованный метод раскрывается в 15 случаев только на Linux). HTML-отчёты находятся в `quorum-{core,simulator,storage,integration}/build/reports/tests/test/index.html`; их собирает существующий workflow. CI M2 ожидает push.
 
-Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`. В quorum-storage параметр java.io.tmpdir направлен в build/tmp/test-files: системный /tmp может быть tmpfs даже при исходниках на ext4. Linux-тест проверяет путь/FS, запускает child JVM halt и ENOSPC через /dev/full. Это проверка API/протокола/process crash, не hardware power loss. [Разбор WAL](WAL_STORAGE.md).
+Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`. В quorum-storage и quorum-integration java.io.tmpdir направлен в module build/tmp/test-files: системный /tmp может быть tmpfs. Linux-тесты проверяют путь/FS, WAL crash boundaries и связку ElectionCore/Storage/recovery. Это проверка API/протокола/process crash, не hardware power loss. [Разбор WAL](WAL_STORAGE.md), [выборы](ELECTIONS.md).
 
 ## Официальные источники
 

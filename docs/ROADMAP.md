@@ -1,6 +1,6 @@
 # Дорожная карта QuorumLab
 
-Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0 завершён; QL-005 принят в PR #4. QL-006 (файловый WAL/checkpoint/recovery) реализован, локальный gate M1 выполнен: Windows 190 выполненных случаев, WSL/ext4 212.** CI/merge QL-006 ожидают пользовательского push; M2–M9 не начаты.
+Основание: [ТЗ v1.0, разделы 8–11](TECHNICAL_SPECIFICATION.md). Статус на 15 ноября 2026: **M0/M1 завершены после CI/merge PR #5. M2 реализован и локально проверен: Windows 230 выполненных случаев, WSL/ext4 256.** CI/merge M2 ожидают пользовательского push; M3–M9 не начаты.
 
 ## Порядок и зависимости
 
@@ -38,11 +38,11 @@
 - [x] Определить versioned checkpoint/UUID/byte offset и восстановление одного активного сегмента; commit не может ссылаться на отсутствующую запись. [ADR-003](adr/0003-wal-checkpoint-and-recovery.md).
 - [x] Различать suffix за checkpoint и corruption любого байта durable prefix; при последней startup FAIL_CLOSED, без fallback на temp.
 - [x] Проверить metadata formats, partial/zero writes, model force/crash boundaries, 15 реальных JVM halt boundaries, ENOSPC через /dev/full и seeded replay на ext4.
-- [ ] Подтвердить CI PR и main после пользовательского push/merge QL-006.
+- [x] Подтвердить CI PR #5 43718265515 и main 43718416419 после merge eabf1b3: оба jobs Ubuntu/Windows success.
 
 **Gate:** WAL roundtrip, HardState persistence и crash-recovery tests проходят; восстановленное состояние совпадает с моделью. Гарантии ограничены проверенной моделью fsync, а не произвольным hardware power loss.
 
-**Локальный gate выполнен:** Windows/WSL clean test build успешны, Linux 212 случаев без ошибок/пропусков. Первый Linux run обнаружил lock bug и /tmp на tmpfs; исправления подтверждены новым ext4 run-aBKvD37K. Окончательный статус этапа — после CI/merge текущего среза.
+**Gate M1 выполнен:** Windows/WSL clean test build успешны, Linux 212 случаев без ошибок/пропусков; CI PR #5/main прошли, merge подтверждён. Первый Linux run обнаружил lock bug и /tmp на tmpfs; исправления подтверждены ext4 run-aBKvD37K.
 
 **Задачи:** QL-005…QL-006; часть T-12/T-13/T-17.
 
@@ -50,13 +50,16 @@
 
 **Результат:** три simulated nodes выбирают лидера с устойчивыми term/vote.
 
-- [ ] Реализовать follower/candidate/leader, randomized election timeouts и heartbeat scheduling.
-- [ ] Реализовать RequestVote и проверку актуальности candidate log.
-- [ ] Сохранять term/vote до зависимых сообщений; учитывать delayed/duplicate responses.
-- [ ] Реализовать step-down при большем term и восстановление term/vote после crash.
-- [ ] Проверить split vote, повторные выборы и election safety на минимальном виртуальном runtime.
+- [x] Реализовать ElectionCore follower/candidate/leader/failed, randomized timeouts и election-only heartbeat scheduling.
+- [x] Реализовать RequestVote, fixed membership и log freshness по (term,index).
+- [x] Сохранять term/vote до зависимых сообщений; сериализовать persist, отменять устаревшие replies/campaign, проверять IDs и distinct votes.
+- [x] Реализовать step-down при большем term, same-term leader contact и recovery после crash; реальные FileWal integration tests.
+- [x] Проверить split vote, повторные выборы, 2/3 vs 1/3, isolate/heal, election safety и 100 seeded fault trials на виртуальном runtime.
+- [ ] Подтвердить CI PR/main после пользовательского push/merge M2.
 
 **Gate:** election/step-down/split-vote/restart tests проходят; не бывает двух легитимно избранных лидеров одного term. Живость проверяется после стабилизации связи.
+
+**Локальный gate выполнен:** 26 core + 14 simulator + 4 Linux integration новых cases; Linux 256/256, Windows 230 executed + 12 Linux methods skipped. Свидетельство run-WVW1bqw8, [ADR-004](adr/0004-deterministic-leader-election.md). Это экспериментальные проверки, не формальное доказательство; heartbeat ещё не AppendEntries. M3 не начат.
 
 **Задачи:** QL-007…QL-009; T-01/T-02.
 
@@ -170,10 +173,10 @@
 | QL-003 | M0 | RaftEvent, Effect, DTO, clock abstraction | Зафиксированы интерфейсы и порядок выполнения зависимых эффектов | Начальный объём выполнен: ADR-002 и 36 тестовых случаев; расширение контрактов в M1–M6 |
 | QL-004 | M0 | Детерминированный event scheduler | Повтор событий даёт тот же порядок и результат | Выполнено: 8 тестов, включая повтор trace и равновременные события |
 | QL-005 | M1 | WAL binary format и CRC32C codec | Roundtrip и негативные format/checksum tests | Выполнено: 69 случаев, PR #4 merged d00dcd7, CI main 43715944608 success |
-| QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Реализовано и проверено локально: 83 новых случая, ADR-003; CI/merge ожидают push |
-| QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Не начато |
-| QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Не начато |
-| QL-009 | M2 | Election safety и split vote | T-01/T-02 и restart tests | Не начато |
+| QL-006 | M1 | Persist/replay HardState и WAL recovery | Crash/restart не создают ложного durable state | Выполнено: PR #5 merged, CI PR/main success |
+| QL-007 | M2 | Переходы follower/candidate/leader | Transition и step-down tests | Реализовано/проверено локально; CI M2 ожидается |
+| QL-008 | M2 | RequestVote и term/vote ordering | Голос не отправляется до завершения требуемого persist | Реализовано/проверено core, simulator и FileWal integration |
+| QL-009 | M2 | Election safety и split vote | T-01/T-02 и restart tests | Локальный gate M2 пройден, 100 seeded trials; CI/merge ожидаются |
 | QL-010 | M3 | AppendEntries consistency и append | Conflict repair сохраняет committed prefix | Не начато |
 | QL-011 | M3 | nextIndex/matchIndex | Репликация/повторы/запаздывающие ответы корректны | Не начато |
 | QL-012 | M3 | Current-term commit и Figure 8 | Regression ловит неправильное правило commit | Не начато |

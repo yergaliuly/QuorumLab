@@ -1,6 +1,6 @@
 # Матрица приёмки QuorumLab
 
-Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта проверок и фактических свидетельств. **M1 проверяет T-12/T-13 и storage-часть T-17 в указанной модели; полные распределённые сценарии T-01…T-18 ещё не закрыты.** Исторические результаты M0/codec не следует принимать за результаты более поздних этапов. После реализации сохраняем test path/команду, build/commit и артефакт прогона.
+Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта проверок и фактических свидетельств. **M1 проверяет T-12/T-13 и storage-часть T-17; M2 добавил T-01/T-02 и election/restart-часть S-01/S-02 в указанной модели. Полные распределённые сценарии T-01…T-18 ещё не закрыты.** Исторические результаты не следует принимать за результаты более поздних этапов. После реализации сохраняем test path/команду, build/commit и артефакт прогона.
 
 ## Свидетельства M0 build от 7 ноября 2026
 
@@ -77,7 +77,7 @@ Linux-свидетельство: `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH
 
 ## Функциональные требования
 
-Последние storage-свидетельства приведены в отдельном разделе QL-006 в конце документа; таблицы ниже сохраняют трассировку исходного ТЗ.
+Последние storage/election-свидетельства приведены в разделах QL-006/M2 в конце документа; таблицы ниже сохраняют трассировку исходного ТЗ.
 
 | ID | Требование | Основные этапы | Свидетельство приёмки |
 |---|---|---|---|
@@ -183,7 +183,7 @@ CI также включает build и static analysis. Ориентиры core
 
 ## Свидетельства M1 File WAL/checkpoint/recovery от 15 ноября 2026
 
-QL-006, ветка `feat/m1-durable-wal` от `d00dcd7`. [Дизайн](superpowers/specs/2026-11-15-durable-wal-design.md), [ADR-003](adr/0003-wal-checkpoint-and-recovery.md), [учебное объяснение](WAL_STORAGE.md). Локальный gate выполнен; GitHub CI/merge этого среза ожидают пользовательского push.
+QL-006, ветка `feat/m1-durable-wal` от `d00dcd7`, commit cd826e1. [Дизайн](superpowers/specs/2026-11-15-durable-wal-design.md), [ADR-003](adr/0003-wal-checkpoint-and-recovery.md), [учебное объяснение](WAL_STORAGE.md). Пользователь принял [PR #5](https://github.com/yergaliuly/QuorumLab/pull/5), merge eabf1b3ec692327e4cbb19f9493ac78f8f108cea. [PR CI 43718265515](https://github.com/yergaliuly/QuorumLab/actions/runs/43718265515) и [main CI 43718416419](https://github.com/yergaliuly/QuorumLab/actions/runs/43718416419) completed/success, оба jobs Ubuntu/Windows success. M1 завершён.
 
 | Проверка | Фактический результат |
 |---|---|
@@ -205,3 +205,27 @@ QL-006, ветка `feat/m1-durable-wal` от `d00dcd7`. [Дизайн](superpow
 Финальное свидетельство: `/home/amateru/quorumlab-lab/runs/run-aBKvD37K/`. Source HEAD d00dcd7 + незакоммиченный срез; environment.txt, source.sha256, build.log и 11 XML suites. System-out FileWalLinuxTest явно показывает ext4 и data path внутри снимка `source/quorum-storage/build/tmp/test-files/`. Локальные логи — игнорируемые `tmp/m1-storage-*.log`. После финальной сборки менялась только документация.
 
 S-02 подтверждён на границе storage completion, но запрет зависимого Raft RPC до completion проверяется в M2/M3. S-08/FR-09 подтверждены для локального WAL в данной модели; трёхузловой restart и клиентские подтверждения ещё предстоят. Process halt сохраняет ОС, модель диска не эмулирует всё оборудование, power loss/нечестный flush/network FS/Windows durability не доказаны. Незавершённый create может требовать ручного разбора каталога; storage не сбрасывает его автоматически в пустой.
+
+## Свидетельства M2 leader election от 15 ноября 2026
+
+QL-007…QL-009, ветка `feat/m2-leader-election` от `eabf1b3`. [Дизайн](superpowers/specs/2026-11-15-leader-election-design.md), [ADR-004](adr/0004-deterministic-leader-election.md), [учебный разбор](ELECTIONS.md). Локальный gate выполнен; новый PR/CI/merge ожидают пользовательского push.
+
+| Проверка | Фактический результат |
+|---|---|
+| RED/GREEN | 26/26 core и 14/14 simulator cases упали на заглушках; после реализации прошли. Непредвиденных падений готовой реализации не было |
+| Core transitions | Start/timeout/self-vote/majority/heartbeat, log freshness term-first, membership, stale terms/timers/IDs, same/higher-term step-down, matching failure и counter/RNG fail-closed |
+| Persist ordering, S-02 | До matching completion нет RequestVote или нового granted response; higher term во время записи немедленно отменяет старую campaign/reply, записи сериализованы; vote, появившийся во время term-only persist, требует второго persist |
+| T-01/T-02 | Три виртуальных узла выбирают стабильного лидера; split self-votes разрешается в следующем term; majority 2/3 после crash/isolate выбирает лидера, один узел не может избрать себя |
+| S-01 в модели | Runtime проверяет term→leader history после каждого перехода и durable term/vote перед каждым исходящим RPC; два лидера разных terms при partition допустимы, heal приводит к step-down старого |
+| Fault smoke | 100 seed trials, по 35 управляющих действий isolate/heal/crash/restart/obsolete RPC с явной судьбой pending write; safety assertions и последующий прогресс в стабильных условиях. Это один JUnit case, не формальное доказательство |
+| Reproduction | Одинаковые seed и fault script дали равные полные trace и leader history; RNG bounds проверены отдельно |
+| Real WAL integration | Vote durable до completion, restart без второго голоса; старый OperationId не подтверждает новую запись; higher-term writes сериализованы через WalStorage; recovered log определяет freshness, commit metadata сохраняются |
+| Windows | clean test build SUCCESS, XML 242 зарегистрированных: 230 выполненных, 12 Linux methods skipped, failures/errors=0 |
+| WSL/ext4 | scripts/test-wsl.sh, fresh clean test build --no-build-cache SUCCESS, XML 256/256, failures/errors/skipped=0, без FROM-CACHE |
+| Архитектура | Core production classpaths пусты, ArchUnit rules прошли; simulator/storage используют core, integration добавил только test dependencies core/storage. Новых внешних библиотек нет |
+
+Новые тесты: [ElectionCoreTest](../quorum-core/src/test/java/io/github/yergaliuly/quorumlab/core/ElectionCoreTest.java) — 26; [ElectionSimulationTest](../quorum-simulator/src/test/java/io/github/yergaliuly/quorumlab/simulator/ElectionSimulationTest.java) — 14; [ElectionWalIntegrationTest](../quorum-integration/src/test/java/io/github/yergaliuly/quorumlab/integration/ElectionWalIntegrationTest.java) — 4. Новых 44 + прежних 212 = 256 Linux invocations.
+
+Свидетельство: `/home/amateru/quorumlab-lab/runs/run-WVW1bqw8/`, source HEAD eabf1b3 + незакоммиченный срез. environment.txt/source.sha256/build.log, 14 XML suites; system-out storage и integration подтверждает ext4 и test data внутри module build/tmp/test-files. После этого build менялась только документация. Windows логи и RED/GREEN — игнорируемые tmp/m2-*.log.
+
+Границы: election-only heartbeat без response/log matching не подтверждает replication/commit/quorum. Нет настоящей сети или трёхпроцессного Raft-кластера; real WAL integration пересоздаёт core и повторно открывает файлы в той же JVM, не заменяя M5. Отдельные child-JVM halt cases остаются в storage-наборе M1. Проверки не доказывают bounded election time, hardware power loss или все safety-свойства полной репликации. S-03…S-10 и клиентские сценарии сохраняют соответствующие будущие gates.

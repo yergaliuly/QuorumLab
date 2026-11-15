@@ -2,6 +2,11 @@ package io.github.yergaliuly.quorumlab.core;
 
 /** Initial election messages; replication and snapshots will extend this protocol later. */
 public sealed interface RaftRpc {
+    /** M2 election-only leader contact. Never a replication acknowledgement or quorum proof. */
+    record Heartbeat(long term) implements RaftRpc {
+        public Heartbeat { if (term <= 0) throw new IllegalArgumentException("Heartbeat term must be positive"); }
+    }
+
     /** The candidate is the sender in RpcReceived; index/term 0 denote an empty log. */
     record RequestVote(long term, long lastLogIndex, long lastLogTerm) implements RaftRpc {
         public RequestVote {

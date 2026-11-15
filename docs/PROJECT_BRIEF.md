@@ -85,14 +85,16 @@ Core выдаёт эффекты, runtime их исполняет. `step(RaftEve
 
 Обновление 2026-11-15: M0 завершён после успешного CI PR #3/main. Начат M1: [формат WAL v1](superpowers/specs/2026-11-15-wal-codec-design.md), четыре typed records и encode/decode с CRC32C реализованы и проверены. O-04 остаётся открытым для atomic persist batch, durable checkpoint/offset, replay и tail policy; codec не принимает решения об отбрасывании хвоста.
 
-Следующий срез 2026-11-15: PR #4 merged, main CI прошёл. O-04 реализован в [ADR-003](adr/0003-wal-checkpoint-and-recovery.md): atomic batch, UUID/generation/byte offset, force WAL/temp/directory, fail-closed prefix и удаление неподтверждённого suffix, metadata Storage bridge. Локально 212 случаев проходят WSL/ext4 и 190 portable cases Windows. QL-006 ожидает push/CI/merge. Протокол выбран ассистентом в рамках прямого запроса; hardware power loss не проверен, snapshot/rotation не входят в этот срез.
+Следующий срез 2026-11-15: O-04 реализован в [ADR-003](adr/0003-wal-checkpoint-and-recovery.md): atomic batch, UUID/generation/byte offset, force WAL/temp/directory, fail-closed prefix и удаление неподтверждённого suffix, metadata Storage bridge. QL-006 принят в PR #5, CI PR/main success, M1 завершён. Протокол выбран ассистентом в рамках прямого запроса; hardware power loss не проверен, snapshot/rotation не входят в этот срез.
+
+M2 реализован по прямому запросу в feat/m2-leader-election: [ADR-004](adr/0004-deterministic-leader-election.md), ElectionCore, RequestVote, durable barriers, seeded election simulator и реальный WAL restart. O-02/O-03 расширены election-контрактами; log/commit/apply/snapshot RPC ещё впереди. Локально Windows 230 executed и WSL/ext4 256/256, remote CI M2 ожидает push. Heartbeat M2 election-only: не AppendEntries и не доказательство кворума; нет real network/runtime.
 
 | ID | Что уточнить | Почему существенно | Когда решить |
 |---|---|---|---|
 | O-01 | Выбран WSL2 Ubuntu/ext4; исходный checkout — Windows/VS Code, сборочные снимки и будущие data — в Linux | Filesystem проверен через findmnt; сборка не доказывает storage guarantees | Выбор/подготовка выполнены M0, fsync/recovery — M1 |
 | O-02 | Контракт зависимых эффектов: идентификаторы persist batch, ordering, ошибки, обработка устаревших completions после смены term | Список effects сам по себе не задаёт корректный persist → send/apply порядок | M0 |
 | O-03 | Границы `Storage`/`Transport`, DTO и виртуального clock; что именно входит в первый M0 slice | Не связать Raft с конкретным I/O и не отложить тестовый runtime до M7 | M0 |
-| O-04 | Durable checkpoint/offset, atomic HardState update, append/truncate/replay и точная tail policy | Решено/реализовано для M1: ADR-003, локальные gate tests прошли; CI среза ожидается | QL-006; повторная проверка при расширении storage |
+| O-04 | Durable checkpoint/offset, atomic HardState update, append/truncate/replay и точная tail policy | Закрыто для M1: ADR-003, локальные gate tests и CI PR #5/main прошли | Повторная проверка при расширении storage |
 | O-05 | DELETE отсутствующего ключа; CAS отсутствующего/удалённого ключа; начальная revision; PUT того же значения | От этого зависят ответы, revisions, ABA и эталонная KV-модель | До M4 |
 | O-06 | Одинаковый clientId/seq с другим payload; первый seq; какие ошибки потребляют seq; admission новых сессий при лимите | В исходнике нет полного контракта; dedup и capacity должны вести себя детерминированно на репликах | До M4 |
 | O-07 | Каноническое кодирование команды и payloadHash, ответы мутаций, тело 404/tombstone и точное соответствие HTTP-кодов | Retry должен сравнивать одну логическую команду и возвращать сохранённый результат | До M4 API |

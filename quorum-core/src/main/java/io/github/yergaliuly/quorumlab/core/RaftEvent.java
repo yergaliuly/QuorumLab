@@ -4,6 +4,9 @@ import java.util.Objects;
 
 /** Immutable input data. Delivery is serialized by the driver of one node. */
 public sealed interface RaftEvent {
+    /** Driver starts a recovered node once, after its identity and storage are ready. */
+    record Start() implements RaftEvent { }
+
     record TimerFired(OperationId id, TimerKind kind) implements RaftEvent {
         public TimerFired {
             Objects.requireNonNull(id, "id");

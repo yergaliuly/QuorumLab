@@ -4,7 +4,7 @@
 
 Главный результат — проверяемая корректность в заданной модели сбоев. Проект не предназначен для критичных данных или публичного production-развёртывания.
 
-**Статус на 15 ноября 2026:** M0 завершён, WAL codec принят в PR #4. Реализован файловый WAL: атомарные пакеты, checkpoint, CRC32C/replay и обработка сбоев. Локальный gate M1 пройден: Windows 190 выполненных случаев, WSL/ext4 212 без ошибок. CI/merge нового среза ожидают пользовательского push в [репозиторий](https://github.com/yergaliuly/QuorumLab). Алгоритм Raft, KV, сеть, snapshots и ротация WAL ещё не реализованы.
+**Статус на 15 ноября 2026:** M0/M1 завершены, PR #5 и main CI прошли. Реализован M2: детерминированные выборы лидера, persist-before-response, seeded виртуальный стенд трёх узлов и restart через настоящий WAL. Локально Windows 230 выполненных случаев, WSL/ext4 256 без ошибок. CI/merge M2 ожидают пользовательского push в [репозиторий](https://github.com/yergaliuly/QuorumLab). Полный AppendEntries/репликация, KV, реальная сеть, snapshots и ротация WAL ещё не реализованы.
 
 ## Сборка
 
@@ -14,7 +14,7 @@
 .\gradlew.bat clean test build
 ```
 
-На Linux: `./gradlew clean test build`. Глобальная установка Gradle не нужна. Тесты core, scheduler и storage выполняются обычным build; остальные семь модулей пока показывают `NO-SOURCE`. На Windows выполняются portable tests, Linux filesystem/process tests явно skipped. Подробности — в [руководстве по сборке](docs/BUILD.md).
+На Linux: `./gradlew clean test build`. Глобальная установка Gradle не нужна. Обычный build выполняет core, simulator, storage и integration tests; остальные шесть модулей пока показывают `NO-SOURCE`. На Windows выполняются portable tests, Linux filesystem/process/integration tests явно skipped. Подробности — в [руководстве по сборке](docs/BUILD.md).
 
 Для отдельного Linux-стенда из Windows checkout: `wsl.exe -d Ubuntu --exec bash scripts/test-wsl.sh`. Скрипт создаёт свежий снимок на ext4 внутри WSL и выполняет полный build без переиспользования кэша результатов. Окружение, manifest и отчёт сохраняются в `$HOME/quorumlab-lab/runs/`; WAL test files создаются в `quorum-storage/build/tmp/test-files` снимка, будущие node data отделены в `data/`. [Подробности и примеры](docs/M0_GUARDRAILS.md).
 
@@ -28,9 +28,11 @@
 | [Архитектурные проверки и WSL](docs/M0_GUARDRAILS.md) | ArchUnit, защита classpath, Linux/ext4-стенд и свидетельства проверок |
 | [Формат WAL и codec](docs/WAL_CODEC.md) | Четыре операции, ByteBuffer/CRC32C, неполные и повреждённые записи, тесты |
 | [Файловый WAL и recovery](docs/WAL_STORAGE.md) | FileChannel/force, checkpoint, atomic batch, replay, сбои и найденные ошибки |
+| [Выборы лидера](docs/ELECTIONS.md) | Роли/term, majority, persistence barrier, seeded simulator и restart с WAL |
 | [ADR-001](docs/adr/0001-scope-consistency-and-failure-model.md) | Границы v1, согласованность, модель отказов и отложенные решения |
 | [ADR-002](docs/adr/0002-core-events-and-virtual-time.md) | Решения об идентификаторах, persist completion и порядке событий |
 | [ADR-003](docs/adr/0003-wal-checkpoint-and-recovery.md) | Протокол сохранения WAL, recovery policy, границы гарантий |
+| [ADR-004](docs/adr/0004-deterministic-leader-election.md) | Детерминированные выборы, pending persist и границы heartbeat M2 |
 | [Опорное ТЗ v1.0](docs/TECHNICAL_SPECIFICATION.md) | Полная неизменённая копия предоставленной спецификации |
 | [Архитектура и нерешённые вопросы](docs/PROJECT_BRIEF.md) | Стек из материалов, модули, существенные ограничения и решения перед кодом |
 | [Дорожная карта](docs/ROADMAP.md) | M0–M9, зависимости, результаты этапов и первые 12 задач |
