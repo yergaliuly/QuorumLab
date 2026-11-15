@@ -1,6 +1,6 @@
 # Матрица приёмки QuorumLab
 
-Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта будущих проверок. **Продуктовые сценарии T-01…T-18 ещё не запускались.** Частичные свидетельства M0 перечислены отдельно; они не закрывают требования к Raft/storage. После реализации рядом с результатом нужно сохранять test path/команду, build/commit и ссылку на артефакт прогона.
+Основание: [ТЗ v1.0](TECHNICAL_SPECIFICATION.md), разделы 2, 3 и 8. Ниже — карта проверок и фактических свидетельств. **M1 проверяет T-12/T-13 и storage-часть T-17 в указанной модели; полные распределённые сценарии T-01…T-18 ещё не закрыты.** Исторические результаты M0/codec не следует принимать за результаты более поздних этапов. После реализации сохраняем test path/команду, build/commit и артефакт прогона.
 
 ## Свидетельства M0 build от 7 ноября 2026
 
@@ -55,7 +55,7 @@
 
 ## Свидетельства M1 WAL codec от 15 ноября 2026
 
-Первый срез M1 — `feat/m1-wal-codec` от `9d16be8`, QL-005. [Формат](superpowers/specs/2026-11-15-wal-codec-design.md) определяет record framing и payload; физическая запись/force/checkpoint/replay ещё отсутствуют. Новый GitHub CI ожидает пользовательского push, M1 целиком не закрыт.
+Первый срез M1 — `feat/m1-wal-codec` от `9d16be8`, QL-005, коммит `d49e521005d21d2d606f569432efd4ad3b074222`. [Формат](superpowers/specs/2026-11-15-wal-codec-design.md) определяет record framing и payload; физическая запись/force/checkpoint/replay добавлены следующим срезом ниже. Пользователь принял [PR #4](https://github.com/yergaliuly/QuorumLab/pull/4), merge `d00dcd768f41df0583532853cd985dc7eb5c5b16`; [main CI 43715944608](https://github.com/yergaliuly/QuorumLab/actions/runs/43715944608) прошёл оба jobs Ubuntu/Windows.
 
 | Проверка | Фактический результат |
 |---|---|
@@ -67,6 +67,7 @@
 | Windows | `gradlew.bat --no-daemon --console=plain --warning-mode=all clean test build` — SUCCESS, XML: 129 случаев, failures/errors/skipped = 0 |
 | WSL/ext4 | `bash scripts/test-wsl.sh` → свежий `clean test build --no-build-cache` — SUCCESS, те же 129 случаев, failures/errors/skipped = 0, без FROM-CACHE |
 | Classpath | quorum-storage runtimeClasspath содержит только project :quorum-core; новых внешних библиотек нет, архитектурные правила core прошли |
+| GitHub CI кодека | [PR run 43715288132](https://github.com/yergaliuly/QuorumLab/actions/runs/43715288132) completed/success на d49e521; Ubuntu/Windows jobs и шаги build/test успешны. [Push run 43715264757](https://github.com/yergaliuly/QuorumLab/actions/runs/43715264757) и main run 43715944608 после merge также прошли оба jobs |
 
 Новые тесты: [WalCodecTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/WalCodecTest.java) — 57 случаев, [WalRecordTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/WalRecordTest.java) — 12. Всего с 60 прежними — 129 JUnit-случаев, не 329; generated roundtrips не считаются отдельными JUnit invocation.
 
@@ -75,6 +76,8 @@ Linux-свидетельство: `/home/amateru/quorumlab-lab/runs/run-3rvmZSXH
 Это часть проверки versioned disk format (NFR-08), но ещё не WAL recovery или durability. Optional.empty у decoder означает недостаток байтов, а не разрешение обрезать хвост. T-12/T-13/T-17 требуют будущих durable boundary и реального/симулируемого I/O; S-02 и S-08 этим срезом не закрываются.
 
 ## Функциональные требования
+
+Последние storage-свидетельства приведены в отдельном разделе QL-006 в конце документа; таблицы ниже сохраняют трассировку исходного ТЗ.
 
 | ID | Требование | Основные этапы | Свидетельство приёмки |
 |---|---|---|---|
@@ -177,3 +180,28 @@ CI также включает build и static analysis. Ориентиры core
 - [ ] README объясняет запуск, demo, архитектуру, guarantees/failure model и ограничения.
 - [ ] Бенчмарки воспроизводимы, результаты отделены от целей.
 - [ ] Другой человек воспроизводит демонстрацию; нет заявлений о непроверенных гарантиях.
+
+## Свидетельства M1 File WAL/checkpoint/recovery от 15 ноября 2026
+
+QL-006, ветка `feat/m1-durable-wal` от `d00dcd7`. [Дизайн](superpowers/specs/2026-11-15-durable-wal-design.md), [ADR-003](adr/0003-wal-checkpoint-and-recovery.md), [учебное объяснение](WAL_STORAGE.md). Локальный gate выполнен; GitHub CI/merge этого среза ожидают пользовательского push.
+
+| Проверка | Фактический результат |
+|---|---|
+| RED/GREEN | 18/18 state/metadata и 43/43 protocol/bridge случаев сначала упали на заглушках; после реализации прошли |
+| Windows | `gradlew.bat clean test build --no-daemon --console=plain --warning-mode=all`: SUCCESS. XML: 198 зарегистрированных, 190 выполненных, 8 Linux methods skipped, failures/errors=0. Linux parameterized template раскрывается в 15 случаев только на Linux |
+| WSL/ext4 | `bash scripts/test-wsl.sh`: свежий `clean test build --no-build-cache`, SUCCESS, XML: 212 случаев, failures/errors/skipped=0, без FROM-CACHE |
+| Модель диска | Отдельные volatile/forced bytes и durable name bindings; short reads/writes, zero progress, failures до/после WAL write/force, temp write/force, rename и directory force; poisoned writer не возвращает state/success и не продолжает писать |
+| Recovery T-12/T-13 | Неподтверждённые full/partial/corrupt bytes за checkpoint удаляются; повреждение любого durable frame, включая последний, invalid metadata/UUID/bounds/history → FAIL_CLOSED. Stale temp не источник recovery |
+| Реальные process crashes | 15 child JVM halt boundaries от beforeWalWrite до afterAck; halt пропускает close/finally. Reopen видит целый старый/новый пакет и позволяет продолжить работу |
+| ENOSPC, storage-часть T-17 | Реальный Linux /dev/full возвращает ENOSPC после 5 записанных WAL bytes. Нет PersistCompleted, checkpoint не продвинут, reopen сохраняет прежнее состояние. WAL-раздел не заполнялся; симуляция других I/O failures отдельная |
+| Model/replay | 100 seeded batches (66821) с append/truncate/commit и reopen сравниваются с независимым reference log/metadata; это один JUnit case, не 100 |
+| Блокировка | Неудачный same-JVM второй opener не снимает OS lock: отдельная JVM также получает отказ; normal close/recovery errors освобождают ресурсы |
+| Core boundary | Полный build включает Gradle classpath guards + ArchUnit; I/O остаётся в storage, зависимость storage только project core, внешних библиотек не добавлено |
+
+Тесты: [FileWalTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/FileWalTest.java) — 40; [WalStorageTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/WalStorageTest.java) — 3; WalStateTest — 15; WalMetadataTest — 3; [FileWalLinuxTest](../quorum-storage/src/test/java/io/github/yergaliuly/quorumlab/storage/wal/FileWalLinuxTest.java) — 22 Linux invocations. Новых 83 + прежних 129 = 212.
+
+Первый Linux run `run-Tp1rVgAE` обнаружил реальный lock bug: закрытие второго дескриптора после OverlappingFileLockException снимало POSIX lock первого. Исправлен предварительным JVM registry до открытия дескриптора; тот же тест прошёл. Также /tmp оказался tmpfs, поэтому первый run **не считается** ext4-свидетельством WAL. Gradle java.io.tmpdir перенесён в module build/tmp/test-files; добавлена проверка пути/FS.
+
+Финальное свидетельство: `/home/amateru/quorumlab-lab/runs/run-aBKvD37K/`. Source HEAD d00dcd7 + незакоммиченный срез; environment.txt, source.sha256, build.log и 11 XML suites. System-out FileWalLinuxTest явно показывает ext4 и data path внутри снимка `source/quorum-storage/build/tmp/test-files/`. Локальные логи — игнорируемые `tmp/m1-storage-*.log`. После финальной сборки менялась только документация.
+
+S-02 подтверждён на границе storage completion, но запрет зависимого Raft RPC до completion проверяется в M2/M3. S-08/FR-09 подтверждены для локального WAL в данной модели; трёхузловой restart и клиентские подтверждения ещё предстоят. Process halt сохраняет ОС, модель диска не эмулирует всё оборудование, power loss/нечестный flush/network FS/Windows durability не доказаны. Незавершённый create может требовать ручного разбора каталога; storage не сбрасывает его автоматически в пустой.

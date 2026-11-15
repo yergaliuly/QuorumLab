@@ -95,9 +95,9 @@ Workflow запускается при push, pull request и вручную. М�
 
 Фактические результаты и команды записаны в [PROJECT_STATE](PROJECT_STATE.md). Для проверки JUnit использовался временный тест с Java 21 record pattern/switch и проверкой версии тестовой JVM. Сначала намеренно неверное ожидание делало сборку красной, затем корректное — зелёной. Probe подключался init script из игнорируемого `tmp/` и не входит в репозиторий или обычный `test`.
 
-CI PR #1/#2/#3 и main после merge подтверждён на Ubuntu/Windows, M0 завершён 15 ноября. Срез контрактов/scheduler содержит 44 случая, guardrails добавили 16, первый срез WAL codec — ещё 69. HTML-отчёты находятся в `quorum-{core,simulator,storage}/build/reports/tests/test/index.html`; их собирает существующий workflow. Локально прошли 129 случаев, новый CI WAL codec ожидает push.
+CI PR #1–#4 и main после merge подтверждён на Ubuntu/Windows. QL-006 добавил 83 случая к прежним 129: на Linux всего 212 выполненных, на Windows 190 выполненных и 8 skipped Linux methods (параметризованный метод разворачивается в 15 случаев только на Linux). HTML-отчёты находятся в `quorum-{core,simulator,storage}/build/reports/tests/test/index.html`; их собирает существующий workflow. CI QL-006 ожидает push.
 
-Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`: результаты должны получаться на выбранном filesystem. Успешный прогон и manifest проверены. Это готовность стенда, не доказательство WAL/fsync/power-loss durability; такие проверки следуют в M1. [Разбор устройства стенда](M0_GUARDRAILS.md).
+Первоначальная WSL-сборка выполнялась из `/mnt/c`. Теперь [test-wsl.sh](../scripts/test-wsl.sh) создаёт отдельный снимок на ext4 и выполняет `clean test build --no-build-cache`. В quorum-storage параметр java.io.tmpdir направлен в build/tmp/test-files: системный /tmp может быть tmpfs даже при исходниках на ext4. Linux-тест проверяет путь/FS, запускает child JVM halt и ENOSPC через /dev/full. Это проверка API/протокола/process crash, не hardware power loss. [Разбор WAL](WAL_STORAGE.md).
 
 ## Официальные источники
 
